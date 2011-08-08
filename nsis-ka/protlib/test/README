@@ -1,0 +1,35 @@
+Test Suite for Protlib
+----------------------
+
+This directory contains a test suite for Protlib. New tests can simply be
+placed into this directory (see test_template.cpp for an example).
+The Makefile will build and run them automatically together with the existing
+tests if you type
+make check
+
+Sometimes the loopback tests for IPv4 or IPv6 may fail, 
+re-running them is often successful though.
+
+Enable log output during testing by setting the TEST_LOG environment variable:
+export TEST_LOG=true
+Output will go into file testoutput.log in this directory.
+
+All tests use the cppunit testing framework (http://cppunit.sf.net), a C++
+implementation of the popular junit package. Cppunit is available as a
+Debian/Ubuntu package (libcppunit-dev), or via
+
+	https://sourceforge.net/project/showfiles.php?group_id=11795
+
+
+The CppUnit Cookbook:
+	http://cppunit.sourceforge.net/doc/lastest/cppunit_cookbook.html
+
+CppUnit Doxygen documentation:
+	http://cppunit.sourceforge.net/doc/lastest/index.html
+
+List of available assertions:
+	http://cppunit.sourceforge.net/doc/lastest/group___assertions.html
+
+-- 
+$Id: README 6176 2011-05-20 07:39:55Z bless $
+$HeadURL: https://svn.tm.kit.edu/nsis/protlib/trunk/test/README $

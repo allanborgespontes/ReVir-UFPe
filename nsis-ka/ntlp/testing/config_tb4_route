@@ -1,0 +1,11 @@
+# /bin/sh
+
+ip r a 10.10.1.1 via 10.10.3.1 dev eth1
+
+ip r a 10.10.4.0/24 dev eth2  proto kernel  scope link  src 10.10.4.4 
+ip r a 10.10.2.0/24 via 10.10.4.3 dev eth2 
+ip r a 10.10.3.0/24 dev eth1  proto kernel  scope link  src 10.10.3.4 
+ip r a 10.10.1.0/24 via 10.10.3.1 dev eth1 
+
+ 
+

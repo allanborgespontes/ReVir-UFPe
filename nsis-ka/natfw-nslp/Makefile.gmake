@@ -1,0 +1,127 @@
+#
+# Makefile - Main Makefile for NATFW/NSLP
+#
+# $Id: Makefile.gmake 6176 2011-05-20 07:39:55Z bless $
+# $HeadURL: https://svn.tm.kit.edu/nsis/natfw-nslp/trunk/Makefile.gmake $
+#
+# make		run the build process (excludes test suite)
+# make test	build and run the test suite
+# make eval	build the static benchmarks
+# make clean	delete all generated output
+#
+# The following Makefile variables may be used:
+#     LOGGING        Enable logging output (default: active)
+#     DEBUGGING      Enable debugging (default: active)
+#     OPTIMIZATION   Optimize using the given flags (default: '')
+#     BENCHMARK      Create benchmarks (default: inactive)
+#
+# These variables will be passed to the protlib and ntlp Makefiles as well
+# and work in the same way.
+#
+# ==========================================================
+#                      
+# Copyright (C) 2005-2007, all rights reserved by
+# - Institute of Telematics, Universitaet Karlsruhe (TH)
+#
+# More information and contact:
+# https://projekte.tm.uka.de/trac/NSIS
+#                      
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ===========================================================
+LOGGING		=
+DEBUGGING	=
+OPTIMIZATION	= -O3
+BENCHMARK	= 
+
+DISTDIR?=$(CURDIR)/..
+TOPLEVELMAKEINC=$(DISTDIR)/Makefile.inc
+
+include $(TOPLEVELMAKEINC)
+
+CLEAN_SUBDIRS =  $(PROTLIB_SRC) $(NTLP_SRC) src/msg src test eval #examples doc
+
+# sub directories that have their own Makefiles
+MKSUBDIRS	= $(GISTLIB_DIR) $(PROTLIB_SRC) $(FQUEUE_SRC)
+
+.PHONY: all clean $(CLEAN_SUBDIRS)
+
+ifdef SCTP_KERN
+SCTP_LIBLD      = -lsctp
+SCTP_OPTIONS	= -D_USE_SCTP
+CFLAGS		+= $(SCTP_OPTIONS)
+PROTLIB_MAKEFLAGS += SCTP_KERN=yo
+endif
+
+
+TAGSFILES       = $(wildcard $(GIST_INC)/*.h) $(wildcard $(PROTLIB_INC)/*.h) $(wildcard $(FQUEUE_INC)/*.h) $(wildcard $(GIST_SRC)/*.h) $(wildcard $(GIST_SRC)/pdu/*.h) $(wildcard include/msg/*.h) $(wildcard include/*.h)\
+		  $(wildcard $(GIST_SRC)/*.cpp) $(wildcard $(GIST_SRC)/pdu/*.cpp) $(wildcard $(PROTLIB_SRC)/*.cpp) $(wildcard $(FQUEUE_SRC)/*.c) $(wildcard src/msg/*.cpp) $(wildcard src/*.cpp)
+
+.PHONY: all clean $(CLEAN_SUBDIRS) tags ebrowse
+
+
+all: src/msg src eval #examples doc
+
+$(PROTLIB_LIB):
+		$(MAKE) -C $(PROTLIB_SRC)  $(PROTLIB_MAKEFLAGS) $(@F)
+
+$(NTLP_LIB):
+		$(MAKE) -C $(NTLP_SRC)  $(NTLP_MAKEFLAGS) $(@F)
+
+$(FQUEUE_LIB): 
+		$(MAKE) -C $(FQUEUE_DIR) 
+
+$(CLEAN_SUBDIRS):
+	$(MAKE) -C $@ 
+
+doc:
+	- rm -f doxygen.log
+	- doxygen Doxygen.conf
+
+tags: TAGS ebrowse
+
+TAGS:
+	-@echo -n "Creating TAGS file..."
+	-@etags  --language-force=C++ $(TAGSFILES)
+	-@echo "done."
+
+ebrowse:
+	-@echo -n "Creating BROWSE file..."
+	-@ebrowse $(TAGSFILES)
+	-@echo "done."
+
+
+
+# distribute the source code (no object files) to the testbed nodes
+tb: tb19 tb20 tb21 tb22
+
+RSYNC_ARGS = -crpgo --delete --filter='merge testbed/rsync-filter' 
+
+tb19:
+	rsync $(RSYNC_ARGS) . $@:natfw-nslp
+
+tb20:
+	rsync $(RSYNC_ARGS) . $@:natfw-nslp
+
+tb21:
+	rsync $(RSYNC_ARGS) . $@:natfw-nslp
+
+tb22:
+	rsync $(RSYNC_ARGS) . $@:natfw-nslp
+
+clean:
+	for dir in $(CLEAN_SUBDIRS); do $(MAKE)  -C "$$dir" clean; done
+
+$(TOPLEVELMAKEINC):
+	$(error "Sorry, but this component is not meant to be compiled alone, please use the dist tree of the SVN https://svn.ipv6.tm.uka.de/nsis/dist/")

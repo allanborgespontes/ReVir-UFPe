@@ -1,0 +1,8 @@
+auto eth0 eth1 lo
+iface lo inet loopback
+
+iface eth0 inet dhcp
+
+iface eth1 inet static
+	address 10.1.2.1
+	netmask 255.255.255.0

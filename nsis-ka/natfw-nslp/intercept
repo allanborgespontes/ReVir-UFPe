@@ -1,0 +1,9 @@
+#! /bin/sh
+
+GIST_WELL_KNOWN_PORT=4
+
+iptables -A INPUT -p udp --dport $GIST_WELL_KNOWN_PORT -j QUEUE
+iptables -A FORWARD -p udp --dport $GIST_WELL_KNOWN_PORT -j QUEUE
+
+ip6tables -A INPUT -p udp --dport $GIST_WELL_KNOWN_PORT -j QUEUE
+ip6tables -A FORWARD -p udp --dport $GIST_WELL_KNOWN_PORT -j QUEUE

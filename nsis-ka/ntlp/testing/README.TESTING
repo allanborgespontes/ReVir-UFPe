@@ -1,0 +1,156 @@
+GISTka
+~~~~~~
+Testing Scenarios Setup Guide
+
+This Guide will help you build up certain scenarios which can be used to 
+validate the functions of GISTka in cooperation with other GISTka nodes or 
+with other GIST implementations.
+
+
+General setup of a GISTka instance
+##################################
+
+1. Check out GISTka from SVN on both nodes, e.g.,
+   svn co https://projekte.tm.uni-karlsruhe.de/nsis/ntlp/trunk ntlp-trunk
+2. build GISTka (required libraries are described in README)
+3. run the gist startup script "gist" as root, e.g., sudo ./gist
+4. all should be well, you will see GISTka starting and presenting its 
+   rather verbose debug log. All log messages are recorded in 
+   "testing/logs" and can be viewed with less -rf, e.g.,
+   less -rf testing/logs/test-2008-02-08-18\:07\:18-machine-12345
+
+
+Use of the integrated "echo" function for testing
+#################################################
+
+GISTka allows for a "manual testing mode", which must be enabled for all 
+nodes participating in the test by running "gist --echo <nslpid>".
+
+This registers a "virtual NSLP" on each node, listening for RAO 0 and
+NSLPID 12. An integrated virtual NSLP thread will accept data from a
+querying node and tells GIST to establish the connection. There will
+be no NSLP data sent back by the "echo" NSLP.  But thus it is possible
+to check timer settings, connection setup and other crucial protocol
+functions.
+
+
+Use of GISTka in "manual testing mode"
+######################################
+
+Use the GISTConsole by typing
+telnet localhost 40023
+
+This should look like
+$ telnet localhost 40023
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+# GISTConsole for GIST on 'machine'
+# type ?<Return> for help.
+gist>send 12 10.0.0.1 10.0.0.2 no no
+
+will, for example, send a GIST message 
+for NSLPID 12 from (data flow) source IP 10.0.0.1
+towards destination IP 10.0.0.2. The last
+two parameters are (reliable and secure),
+so 
+gist>send 12 10.0.0.1 10.0.0.2 yes no
+will establish a transport connection using either
+SCTP or TCP
+and
+gist>send 12 10.0.0.1 10.0.0.2 yes yes
+will establish a TLS connection (you must have TLS
+certificates create for this).
+In order to use IPv6, simply use IPv6 addresses in these
+command.
+You can set up new session ids for new sessions by using
+gist>set id new
+and then some send command thereafter.
+you can also try to show information about GIST routing table or
+its current configuration by using
+gist>show rtable
+or 
+gist>show config
+directly.
+
+
+2-Nodes testing setup
+#####################
+
+Simply build GIST on both nodes and start "gist --echo 12" on both.
+
+
+Customizing Settings (gist.conf, commandline)
+#############################################
+
+Most protocol settings can be customized in gist.conf or via command line, 
+"gist --help" will show the available options. Currently:
+
+GISTka v0.97.0
+
+usage: gist [options]
+
+options:
+  -h
+  --help                        display this help text
+  --config <filename>           configuration file name
+  --localaddr-v4 <addr>         Local IPv4 listen addresses
+  --localaddr-v6 <addr>         Local IPv6 listen addresses
+  --udp-port <port>             UDP receive port
+  --tcp-port <port>             TCP listen port
+  --tls-port <port>             TLS/TCP listen port
+  --retry-limit <time>          Upper limit for retry limit threshold (ms)
+  --retry-period <time>         Retries will be started initially after this period (ms)
+  --retry-factor <real>         limit up to which random values will be drawn, target value is 0.5*x
+  --ma-hold-time <time>         default time to keep an MA open (ms)
+  --refresh-limit <time>        upper limit for the refresh period (ms), will trigger GIST probing every x milliseconds
+  --state-lifetime <time>       how long (ms) is a routing state valid by default
+  --secrets-count <number>      Amount of local secrets
+  --secrets-length <number>     Length of local secrets in bit
+  --secrets-refreshtime <time>  Local secrets rollover time (s)
+  --delayed-state-installation <on/off>  Use delayed state installation (bool)
+  --confirm-required <on/off>   Require a full handshake at any time (bool)
+  --send-data-in-query <on/off> Send NSLP data also in query (bool)
+  --req-hello-echo <on/off>     Request a reply to an MA-hello (bool)
+  --advertise-sctp <on/off>     advertise SCTP as supported transport protocol at handshake (bool)
+  --debug-tp <on/off>           hex dump PDUs when received or sent PDUs (bool)
+  --intercept-cmd <filename>    string that contains the name of the script to enable GIST packet interception (string)
+  --echo <nslpid>               make this node listen to RAO <nslpid>, 
+  	 		  	NSLPID <nslpid> and accept connections on 
+				it (for testing)
+
+
+The IP setting will tell GIST, which IP address should be used for
+data connections. This can be set to "query" in gist.conf (default
+setting), so GISTka will query the first IPv4 and IPv6 addresses from
+DNS.
+
+The other variables are timeout settings, retry count, secret counts and 
+the options whether "late-state-setup" is used or if a confirm is required 
+for setup. Gist.conf has comments in it, so you should get a clue what
+the configuration options are good for.
+
+
+Using GISTPing of University of Goettingen with GISTka
+######################################################
+
+You can use the GISTPing implementation of University of Goettingen with
+GISTka. This has last been tested with their NSIS Suite version 0.6.0.
+
+1. Get the source of Goettingen NSIS suite (at least version 0.6.0)
+2. Build the suite according to their instructions
+   Essentially this means to run ./configure and make in their source tree
+3. Setup the Goettingen NSIS suite to match your network configuration
+   The relevant configuration file is bin/nsis.conf
+4. start GISTka on all nodes used in the test
+5. run bin/nsis-pingd of Goettingen NSIS suite on all nodes
+6. bin/nsis-pingd should not report errors
+7. GISTka will show the REGISTER of a new NSLP client on the socket API
+8. run bin/nsis-ping on one node to initiate a ping
+   e.g: nsis-ping 10.1.2.2 -r -t 30 -nosleep
+  
+   this requests "reliable" connection in direction to 10.1.2.2 with 30 
+   Ping packets and without the one-second-pause between pings.
+
+   nsis-ping will report the route the packets take on their way to 10.1.2.1
+   and back with timestamps and the IP addresses of the nodes on the path.

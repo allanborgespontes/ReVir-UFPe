@@ -1,0 +1,79 @@
+gist-ka-0.97 (rxxxx):
+=====================
+	- upgrade to draft -20: now using C-Flag in common header to 
+	  indicate Query encapsulation (was introduced in draft -17)
+	- Invalid C Flag error handling
+	- added check for reception of own Query, there will be a warning and it will be ignored
+	- added additional consistency check for stack configuration data and stack profile
+	- modified tp_queryencap to also intercept packets that have no RAO set, if the new option 
+	  intercept-requires-rao==false
+	- tp_queryencap will check for the C-Flag if intercept-requires-rao==false
+	  (otherwise normal Confirm and Data Packets in C-mode will be captured by
+	  tp_queryencap, too)
+	- use of configpar class for configuration parameters:
+	  consistent naming of parameters at command line, config file, 
+	  and interactive console
+	- included mobility enhancements by Max Laier (Flow Info Service),
+	  this will only be compiled if you have a corresponding MIP6d installed
+	- improved GISTConsole to set all available GIST parameters
+	- implemented NAT traversal (early stage)
+	- improved responder cookie mechanism to carry transparent data, too
+	- cleaned up code for setting the RAO (Micha Lenk)
+	- routingentry is now a full class
+	- several smaller bug fixes
+	
+
+gist-ka-0.96 (r2957):
+=====================
+	- fix state setup for MA re-use: state was not set up in C-mode
+	  if stack config was missing. Now MA re-use will automatically
+	  set state to C-mode.
+	- improved ovi_object handling in ntlp_errorobject: 
+	  in case of parse errors ovi_object now contains a raw_ntlp_object
+	- merge with ntlp/branches/sii-handle-fix r2954:
+	  this will allow for SII handle re-use for same peers
+	  and thus fix ticket #4
+	- fixed MA re-use behavior on querier side:
+	  if responder sent response via MA, routing state was not promoted
+	  to C-mode and confirm was not sent via MA. Fixed now.
+        - added explicit signaling target MRM (merge done in r2949)
+	- cancel any running timers if routing state gets deleted by
+	  to_inactive_qnode
+	- added test cases for errorobject
+
+gist-ka-0.95.2 (r2918):
+=======================
+	- fixed setup of C-mode if MA re-use
+	  and Confirm did not contain Stack Configuration data
+
+gist-ka-0.95.1 (r2906):
+=======================
+	- improved behavior according to Postel
+	  principle: 
+	  * now we do not always send a responder cookie
+	    unless required
+	  * we do not require a responder cookie in
+	    a Confirm unless required.
+	- verify responder cookie always if present
+	- echo the incoming interface in the responder
+	  cookie (as required by draft-14)
+	- fixed DEBUG_TP config parameter interpretation
+	- improved error handling and fixed in the errorobject
+	
+        detailed changes: 
+	svn log -v -r2880:2906 https://svn.ipv6.tm.uka.de/nsis ntlp/trunk protlib/trunk
+
+gist-ka-0.95 (r2880):
+=====================
+
+	- protocol fully compliant to draft-15
+        detailed changes: 
+	
+	svn log -v -r 2554:2880 https://svn.ipv6.tm.uka.de/nsis ntlp/trunk protlib/trunk
+
+gist-ka-0.9 (r2523): 
+====================
+	
+	- first release: compliant to draft-12
+	
+	

@@ -1,0 +1,86 @@
+$Id: Interop-Coimbra-notes.txt 2189 2006-10-16 13:59:05Z bless $
+$HeadURL: https://svn.tm.kit.edu/nsis/ntlp/trunk/testing/Interop-Coimbra-notes.txt $
+------------------------------------------------------
+12.10. Alan Ford / GISTka
+       ** TEST #1: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: ROKE, Resonder: UKA, Protocol: IPv4, C-Mode, MA: TCP, 
+       GISTka-opts: late state installation and full handshake 
+       [PASSED]
+       Result:
+       - Full handshake and TCP Connection setup and used as MA
+       - MA hellos sent
+       - additional query worked as well
+
+
+# Major: Should send UDP reply to Query back to src port where it came from and not to well-known port [FIXED]
+# Minor: MA-Hello should be sent randomly distributed [FIXED]
+# Minor: NLI sends 127.0.0.2 back (may add a check for forbidden addresses)
+# Minor: tp_queryencap: "raw" as protocol ID may not work if declaration is missing in /etc/protocols
+# None: MA-Hello is sent using NSLPID 0, but this is required due to SPEC
+
+       ** TEST #2: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: GISTka, Responder: ROKE, Protocol: IPv4, D-mode only, MA: -, 
+       GISTka-opts: late state installation, full handshake, and DATA carried in Query
+       - no retransmission of DATA that was sent in the QUERY (check back what was discussed with Thomas)
+       [PASSED]
+
+Minor: Check for repetition of NSLP Payload when resending a Query in D-Mode
+             
+       ** TEST #3: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: GISTka, Responder: ROKE, Protocol: IPv4, C-mode, MA: TCP, 
+       GISTka-opts: late state installation and full handshake 
+       [PASSED]
+       
+       ** TEST #4: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: GISTka, Responder: ROKE, Protocol: IPv4, secure C-mode, MA: TLS/TCP, 
+       GISTka-opts: late state installation and full handshake 
+       [PASSED]
+
+Major:  Stack proposal wrong [FIXED]
+
+sec 5.1:
+"...MA-Hold-Time must be repeated on first message.."
+=> how in the protocol layout?
+What to do if this one is missing? Send Error
+
+Major: MA only added if Stack Configuration Data is contained in CONFIRM (LATE STATE INSTALLATION)
+       => Spec needs clarification what to do if this one is missing
+
+Major: Spec on p. 30 says that Confirm MAY also contain an abbreviated form...
+       while in sec. 5.1 it says the first message must
+
+Major: MA-Protocol-Options should not refer to TLS but to TCP [FIXED]
+
+       ** TEST #5: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: ROKE, Responder: GISTka, Protocol: IPv4, secure C-mode, MA: TLS/TCP, 
+       GISTka-opts: late state installation and full handshake 
+       (did not work at first, client certificate check failed due to too old certificates ...)
+       [PASSED]
+
+       ** TEST #6: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: ROKE, Responder: GISTka, Protocol: IPv4, C-mode, MA: TCP, 
+       GISTka-opts: NO late state installation and full handshake 
+       [PASSED]
+
+       ** TEST #7: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: ROKE, Responder: GISTka, Protocol: IPv4, D-mode, MA: -, 
+       GISTka-opts: NO late state installation and full handshake 
+       [PASSED] (Roke sent a refresh a little bit too late so routing state expired first)
+
+       ** TEST #8: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: GISTka, Responder: ROKE, Protocol: IPv6, C-mode, MA: TCP, 
+       GISTka-opts: late state installation and full handshake 
+       [PASSED] (Roke was not listening to RAO)
+
+       (** TEST #9: Scenario: ROKE/UKA Back-to-Back (1 hop)
+       Querier: ROKE, Responder: GISTka, Protocol: IPv6, C-mode, MA: -, 
+       GISTka-opts: late state installation and full handshake 
+       [PASSED]?)
+
+====================================================
+Coimbra QoS NSLP
+
+Major: Parsing error for packet classifier
+
+MA-Hold-Timer of 0 ms in Query?
+

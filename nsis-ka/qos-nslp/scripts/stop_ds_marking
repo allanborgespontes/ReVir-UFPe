@@ -1,0 +1,8 @@
+#! /bin/bash
+TC=/sbin/tc
+IFDEV=eth1
+
+$TC qdisc del dev $IFDEV root
+
+    
+    

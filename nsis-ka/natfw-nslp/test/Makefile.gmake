@@ -1,0 +1,61 @@
+#
+# Makefile - Makefile to build and run the test suite
+#
+# $Id: Makefile.gmake 6176 2011-05-20 07:39:55Z bless $
+# $HeadURL: https://svn.tm.kit.edu/nsis/natfw-nslp/trunk/test/Makefile.gmake $
+#
+# make		build the test suite
+# make test	run the test suite
+# make clean	delete all generated output
+#
+# Note: Run the test suite from the directory below, that way the libraries
+#       the test case works with are re-built if necessary.
+#
+NAME = test_runner
+
+DISTDIR?=$(CURDIR)/../..
+include $(DISTDIR)/Makefile.inc
+
+# The static libraries this test suite depends on.
+#
+LIB_PROT = $(PROTLIB_LIB) $(FQUEUE_LIB)
+LIB_GIST = $(NTLP_LIB)
+LIB_NATFW_MSG = ../src/msg/libnatfw_msg.a 
+LIB_NATFW = ../src/libnatfw.a
+
+ALL_LIBS = $(LIB_NATFW) $(LIB_NATFW_MSG) $(LIB_GIST) $(LIB_PROT) 
+
+
+CXX = g++
+CXXFLAGS = -Wall -pedantic -Wno-long-long -I../include \
+		-I$(PROTLIB_INC) -I$(FQUEUE_INC) \
+		-I$(NTLP_INC) $(shell cppunit-config --cflags)
+LDFLAGS = $(ALL_LIBS) $(shell cppunit-config --libs) \
+		-lcrypto -lssl -lpthread -lrt -lipq
+
+
+#
+# nothing to change down here
+#
+
+SRC = $(wildcard *.cpp)
+OBJ = $(patsubst %.cpp, %.o, $(SRC))
+
+.PHONY: test clean
+
+
+$(NAME): $(OBJ) $(ALL_LIBS)
+	$(CXX) -o $(NAME) $(OBJ) $(LDFLAGS) 
+
+test: $(NAME)
+	@echo Running test suite ...
+	@./$(NAME)
+
+clean: 
+	-rm -f $(NAME) $(OBJ) depend
+
+depend:
+	$(CXX) -MM $(CXXFLAGS) $(SRC) > depend
+
+# Include dependencies, do not delete!
+-include depend

@@ -1,0 +1,36 @@
+README for the QoS NSLP KA implementation
+=========================================
+this component depends on
+
+ntlp
+protlib
+qspec
+
+You need to check-out 
+https://svn.tm.kit.edu/nsis/dist/qos-nslp-ka/trunk
+in order to get all the required components automatically.
+Use 
+./configure
+make
+make install
+to configure, compile and install the software.
+
+See src/client.cpp for an example how to use the
+QoS NSLP for requesting QoS reservations. The 
+QoS_NSLP_Client_API can be used within your application
+as indicated. It will communicate with the QoS NSLP 
+daemon process via Unix Domain Sockets.
+
+Please change the file 
+../nsis-ka.conf as required, e.g.,
+you must specify the IP addresses of your machine
+in the [gist] configuration part.
+
+Start the QoS NSLP daemon using the start script
+src/start-qosnslp
+as superuser (e.g., cd src; sudo ./start-qosnslp)
+(this will also create some soft-links to scripts
+in the ntlp directory)
+
+Start the client as
+sudo ./client <src-ip> <dst-ip>

@@ -1,0 +1,45 @@
+#!/bin/sh
+SVNDIR=`svn info --xml | sed -n -e '/^<root>/ { s/<root>\(.*\)<\/root>/\1/g; p }'`
+#SVNDIR=https://svn.ipv6.tm.uka.de/nsis
+DISTSUBDIR=`svn info | sed -n -e '/^URL:/ { s/^URL: .*\/dist\/\(.*\)\/.*/\1/; p }'`
+#DISTSUBDIR should be the dist component like nsis-ka, qos-nslp-ka, gist-ka
+DISTDIR=$SVNDIR/dist
+TMPEXTFILE=svn-externals.tmp
+TMPSVNWORKDIR=/tmp/tmp-svnwork.$$
+
+
+if [ "$1" = "" ]; then
+    read -p "input tag name (current date will be prepended):" tagname ;
+else
+    tagname=$1
+fi
+  
+relname=`date "+%Y%m%d-$tagname"`
+
+echo "Tagging for release: $relname"
+echo -n "creating $DISTDIR/$DISTSUBDIR/tags/$relname ..."
+svn cp --quiet -m "Auto-generated tag $relname" $DISTDIR/$DISTSUBDIR/trunk $DISTDIR/$DISTSUBDIR/tags/$relname
+echo "done."
+
+echo "deleting svn:externals for $DISTDIR/$DISTSUBDIR/tags/$relname ..."
+svn checkout --quiet --ignore-externals $DISTDIR/$DISTSUBDIR/tags/$relname $TMPSVNWORKDIR
+svn propdel svn:externals --quiet $TMPSVNWORKDIR
+svn commit -m "- deleted externals for the auto-generated tag $relname" $TMPSVNWORKDIR
+echo "done."
+
+i=1
+   
+for ext in `svn pg --strict svn:externals .`; do
+        if [ $(($i % 2)) = 1 ]; then
+                name="$ext"
+        else
+	    echo -n "tagging $relname for component $name ..."
+                src="$ext"
+                svn cp --quiet -m "Auto-generated tag $relname for component $name" $src $DISTDIR/$DISTSUBDIR/tags/$relname/$name
+		tagdir=`echo $src | sed -e 's/trunk/tags/'`
+		svn cp --quiet -m "Auto-generated tag $relname for component $name" $src $tagdir/$relname
+	    echo "done."
+        fi
+        i=$(($i + 1))
+done
+rm -rf $TMPSVNWORKDIR

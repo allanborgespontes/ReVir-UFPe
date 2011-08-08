@@ -1,0 +1,53 @@
+#
+# Makefile - Makefile to build and run the test suite.
+#
+# $Id: Makefile.gmake 6176 2011-05-20 07:39:55Z bless $
+# $HeadURL: https://svn.tm.kit.edu/nsis/qos-nslp/trunk/unittests/Makefile.gmake $
+#
+# make		build the test suite
+# make test	run the test suite
+# make clean	delete all generated output
+#
+NAME = test_runner
+
+DISTDIR?=$(CURDIR)/../..
+include $(DISTDIR)/Makefile.inc
+
+# The static libraries this test suite depends on.
+#
+
+ALL_INCLUDES = -I $(QOSNSLP_INC) -I $(NTLP_INC) -I $(PROTLIB_INC)
+ALL_LIBS = $(LD_QOSNSLP) $(LD_NTLP_LIB) $(LD_PROTLIB_LIB) $(LD_FQUEUE_LIB)
+
+CXX = g++
+CXXFLAGS = -Wall -pedantic -Wno-long-long $(ALL_INCLUDES) \
+		`cppunit-config --cflags`
+LDFLAGS = $(ALL_LIBS) `cppunit-config --libs` -lpthread -lipq -lssl -lcrypto
+
+#TEST_DEPS = $(LIB_PROT) $(LIB_GIST)
+
+#
+# nothing to change down here
+#
+
+SRC = $(wildcard *.cpp)
+OBJ = $(patsubst %.cpp, %.o, $(SRC))
+
+.PHONY: test clean
+
+
+$(NAME): $(OBJ) $(TEST_DEPS)
+	$(CXX) -o $(NAME) $(OBJ) $(LDFLAGS) 
+
+test: $(NAME)
+	@echo Running test suite ...
+	@./$(NAME)
+
+clean: 
+	-rm -f $(NAME) $(OBJ) depend
+
+depend:
+	$(CXX) -MM $(CXXFLAGS) $(SRC) > depend
+
+# include Makefile dependency snippets for each source file
+-include depend

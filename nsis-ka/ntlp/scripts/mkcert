@@ -1,0 +1,20 @@
+echo "[ req ]
+default_bits = 1024
+encrypt_key = yes
+distinguished_name = req_dn
+x509_extensions = cert_type
+prompt = no
+
+[ req_dn ]
+C=DE
+O=TM-UKA
+CN=$1
+
+[ cert_type ]
+nsCertType = server
+" > $1_cert.cnf
+
+openssl req -config $1_cert.cnf -new -nodes -keyout $1_privkey.pem -out $1_cert.req
+openssl req -in $1_cert.req -text
+openssl x509 -days 366 -req -in $1_cert.req -signkey $1_privkey.pem -out $1_cert.pem -CA root_cert.pem -CAkey root_privkey.pem
+openssl x509 -in $1_cert.pem -noout -text

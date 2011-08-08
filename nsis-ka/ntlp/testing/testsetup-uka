@@ -1,0 +1,38 @@
+Test setup for test "chain of 3 routers"
+########################################
+
+
+IPv4:
+
+tb1 eth1 <-> tb2 eth2
+tb2 eth1 <-> tb3 eth1
+
+tb1 eth1: 10.10.1.1 / 255.255.255.0
+tb2 eth2: 10.10.1.2 / 255.255.255.0
+tb2 eth1: 10.10.2.2 / 255.255.255.0
+tb3 eth2: 10.10.2.3 / 255.255.255.0
+
+
+IP-Forwarding enabled on tb2, static route for 10.10.2.x from tb1 via eth1 (to
+tb2). Backwards from tb3 to 10.10.1.x via eth2 (to tb2).
+
+Note: In general, the backwards route from tb3 to tb1 is NOT necessary because GIST in general
+initiates the connection FORWARDS.
+
+Thus it should be possible to establish a chain of 3 interconnected GISTs via
+initiating the connect from tb1 (10.10.1.1) to tb3 (10.10.2.3).
+
+The communication after the initial path setup will then run via their normal links (eth0) because
+these are the addresses in the router's DNS entries.
+
+Do not forget to set up netfilter kernel modules on the hosts via the script "loadmodules"
+prior to starting your GIST instance.
+
+Afterwards, you should enable Packet filtering by "intercept"
+
+The script "flush" will reset the netfilter rules when you are
+finished testing.
+
+Please keep in mind: Use the address of tb3 from tb1 and the message will only
+reach tb2, which will intercept it. This is the correct design, if a matching NSLP is
+registered on this host.

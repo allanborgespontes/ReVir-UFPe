@@ -1,0 +1,126 @@
+# -----------------------------------*- mode: Makefile; -*--
+# Makefile - Top-level Makefile for QoSNSLPka
+# ----------------------------------------------------------
+# $Id$
+# $HeadURL$
+# ==========================================================
+#                      
+# Makefile arguments:
+# (for protlib)
+# SCTP_KERN=1    - compile with SCTP support
+# backwards compatibility
+# USE_RFC2292=1  - use if glibc does not support RFC3542 yet (e.g., inet6_opt_init())
+#                      
+# Copyright (C) 2005-2007, all rights reserved by
+# - Institute of Telematics, Universitaet Karlsruhe (TH)
+#
+# More information and contact:
+# https://nsis-ka.org
+#                      
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# (C)opyright, all rights reserved by
+# - Institute of Telematics, University of Karlsruhe (TH)
+# ==========================================================
+
+QOS_NSLP_SRC=src
+QOS_NSLP_INC=include
+
+DISTDIR?=$(CURDIR)/..
+TOPLEVELMAKEINC=$(DISTDIR)/Makefile.inc
+
+include $(TOPLEVELMAKEINC)
+
+GISTLIB_DIR=$(NTLP_DIR)
+QSPECLIB_DIR=ext/qspec
+
+# sub directories that have their own Makefiles
+MKSUBDIRS	= $(GISTLIB_DIR) $(PROTLIB_SRC) $(FQUEUE_SRC) $(QSPECLIB_DIR) $(QOS_NSLP_SRC)
+
+.PHONY: clean distclean cleandocs docs all qosnslp localclean \
+	setperms TAGS tags svnprops showfiles
+
+TAGSFILES	= $(wildcard $(PROTLIB_INC)/*.h) \
+		  $(wildcard $(PROTLIB_SRC)/*.cpp) \
+		  $(wildcard $(FQUEUE_INC)/*.h) \
+		  $(wildcard $(FQUEUE_SRC)/*.c) \
+		  $(wildcard $(GIST_INC)/*.h) \
+		  $(wildcard $(GIST_SRC)/*.h) \
+		  $(wildcard $(GIST_SRC)/pdu/*.h) \
+		  $(wildcard $(GIST_SRC)/*.cpp) \
+		  $(wildcard $(GIST_SRC)/pdu/*.cpp) \
+		  $(wildcard $(QOS_NSLP_INC)/*.h) \
+		  $(wildcard $(QOS_NSLP_SRC)/*.cpp) \
+		  $(wildcard $(QSPEC_INC)/*.h) \
+		  $(wildcard $(QSPEC_SRC)/*.cpp)
+
+all: qosnslp
+
+qosnslp:
+	$(MAKE) -C $(QOS_NSLP_SRC) 
+
+setperms:
+	$(MAKE) -C $(QOS_NSLP_SRC)  setperms
+
+libs:
+	$(MAKE) -C $(QOS_NSLP_SRC)  libs
+
+tests:
+	for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir  tests ; done
+
+svnprops:
+	- for file in $(TAGSFILES); do svn propset svn:keywords "Id HeadURL Rev" $$file ; done
+
+showfiles:
+	- @echo $(TAGSFILES)
+
+docs:
+	rm -f doxygen.log
+	doxygen Doxygen.conf
+
+cleandocs:
+	- rm -rf doc/
+
+localclean:
+	- rm -f *~ *.log TAGS BROWSE depend
+
+clean: localclean
+	for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir  clean ; done
+
+distclean: clean localclean cleandocs
+	- for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir  distclean ; done
+
+tags: TAGS ebrowse
+
+TAGS:	
+	-@echo -n "Creating TAGS file..."
+	-@etags  --language=c++ $(TAGSFILES)
+	-@echo "done."
+
+ebrowse:
+	-@echo -n "Creating BROWSE file..."
+	- @ebrowse $(TAGSFILES)
+	-@echo "done."
+
+depend:
+	- for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir  depend ; done
+
+freshdepend:
+	- for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir  freshdepend ; done
+
+$(TOPLEVELMAKEINC):
+	$(error "Sorry, but this component is not meant to be compiled alone, please use the dist tree of the SVN https://svn.ipv6.tm.uka.de/nsis/dist/")
+
+
+#end of Makefile

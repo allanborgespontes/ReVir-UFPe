@@ -1,0 +1,122 @@
+#
+# Makefile - Makefile for the NATFW NSLP
+#
+# $Id: Makefile.gmake 6176 2011-05-20 07:39:55Z bless $
+# $HeadURL: https://svn.tm.kit.edu/nsis/natfw-nslp/trunk/src/Makefile.gmake $
+#
+# make		run the build process
+# make clean	delete all generated output
+#
+# The following Makefile variables may be used:
+#     LOGGING        Enable logging output (default: active)
+#     DEBUGGING      Enable debugging (default: active)
+#     OPTIMIZATION   Optimize using the given flags (default: '')
+#     BENCHMARK      Create benchmarks (default: inactive)
+#
+DEBUGGING	= 1			# the undefined value disables debugging
+LOGGING		= 1			# the undefined value disables logging
+OPTIMIZATION	=			# ie. -O2
+BENCHMARK	=			# assign a value to enable benchmarking
+
+DISTDIR?=$(CURDIR)/../..
+include $(DISTDIR)/Makefile.inc
+
+# The external static libraries we depend on
+#
+LIB_PROT = $(PROTLIB_LIB)
+LIB_FASTQUEUE = $(FQUEUE_LIB)
+LIB_GIST = $(NTLP_LIB)
+LIB_NATFW_MSG = msg/libnatfw_msg.a
+
+ALL_LIBS = $(LIB_NATFW_MSG) $(LIB_GIST) $(LIB_PROT) $(LIB_FASTQUEUE) 
+
+INC =  -I../include -I$(PROTLIB_INC) -I$(FQUEUE_INC) -I$(NTLP_INC)
+
+ifdef SCTP_KERN
+SCTP_LIBLD      = -lsctp
+SCTP_OPTIONS	= -D_USE_SCTP
+CFLAGS		+= $(SCTP_OPTIONS)
+PROTLIB_MAKEFLAGS += SCTP_KERN=yo
+endif
+
+# The targets to build
+#
+NATFW_BIN = natfwd
+NATFW_LIB = libnatfw.a
+
+TEST_CLIENT = test_client
+TEST_STRESS = test_stress
+TEST_STRESS2 = test_stress2
+
+# Compiler and linker settings common to all targets
+#
+CXX = g++
+AR = ar
+CXXFLAGS = -Wall -g -pedantic -Wno-long-long $(INC)
+LDFLAGS = $(ALL_LIBS) -lcrypto -lpthread -lipq -lssl -lrt $(SCTP_LIBLD)
+
+
+ifdef BENCHMARK
+CXXFLAGS += -DBENCHMARK
+endif
+
+ifndef LOGGING
+CXXFLAGS += -D_NO_LOGGING
+endif
+
+CXXFLAGS += $(OPTIMIZATION)
+
+
+NATFW_OBJS = session.o session_manager.o dispatcher.o natfw_daemon.o \
+	session_id.o ni_session.o nf_session.o nr_session.o nr_ext_session.o \
+	nf_edge_ext_session.o nf_non_edge_ext_session.o natfw_config.o \
+	policy_rule.o policy_rule_installer.o iptables_policy_rule_installer.o \
+	nat_manager.o gistka_mapper.o natfw_timers.o benchmark_journal.o
+
+
+# Targets
+#
+
+.PHONY: clean all msg
+
+all: msg $(NATFW_BIN) $(NATFW_LIB) $(TEST_CLIENT) $(TEST_STRESS) $(TEST_STRESS2)
+
+msg:
+	$(MAKE) -C $@ 
+
+
+$(NATFW_BIN): main.o $(NATFW_OBJS) $(ALL_LIBS)
+	$(CXX) -o $@ main.o $(NATFW_OBJS) $(LDFLAGS)
+
+$(TEST_CLIENT): test_client.o $(NATFW_OBJS) $(LIB_NATFW_MSG) $(ALL_LIBS)
+	$(CXX) -o $@ test_client.o $(NATFW_OBJS) $(LDFLAGS)
+
+$(TEST_STRESS): test_stress.o $(NATFW_OBJS) $(LIB_NATFW_MSG) $(ALL_LIBS)
+	$(CXX) -o $@ test_stress.o $(NATFW_OBJS) $(LDFLAGS)
+
+$(TEST_STRESS2): test_stress2.o $(NATFW_OBJS) $(LIB_NATFW_MSG) $(ALL_LIBS)
+	$(CXX) -o $@ test_stress2.o $(NATFW_OBJS) $(LDFLAGS)
+
+$(NATFW_LIB): $(NATFW_OBJS)
+	$(AR) -rsv $@ $?
+
+$(PROTLIB_LIB):
+		$(MAKE) -C $(PROTLIB_SRC)  $(PROTLIB_MAKEFLAGS) $(@F)
+
+$(NTLP_LIB):
+		$(MAKE) -C $(NTLP_SRC)  $(NTLP_MAKEFLAGS) $(@F)
+
+$(FQUEUE_LIB): 
+		$(MAKE) -C $(FQUEUE_DIR) 
+
+
+clean: 
+	-rm -f $(NATFW_BIN) $(NATFW_LIB) $(TEST_CLIENT) $(TEST_STRESS) \
+		$(TEST_STRESS2) $(wildcard *.o) depend
+	$(MAKE) -C msg  clean
+
+depend:
+	$(CXX) -MM $(CXXFLAGS) $(wildcard *.cpp) > depend
+
+# Include dependencies, do not delete!
+-include depend

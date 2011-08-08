@@ -1,0 +1,91 @@
+Test Setup 1: NI, NF, and NR
+============================
+
+Basic setup with three nodes: initiator, forwarder, and responder.
+The following tests are available:
+
+
+Test Setup 1a: NF is a firewall
+-------------------------------
+
+NI and NF can reach each other via NF using public addresses. No NAT is
+required, but the NF runs a NATFW-enabled firewall. The firewall has to be
+configured so that GIST messages may pass freely on all chains (INPUT,
+OUTPUT, and FORWARD). All other traffic may be blocked, however, the
+rules that the NATFW implementation appends have to be first.
+
+
+1a1: NI ---> FW ---> NR
+	NI: sudo src/test_client -c testbed/setup_1_tb19.conf \
+		10.38.1.191 10.38.2.212 1234 5678 6; sudo ./flush
+	    netcat -w 3 -p 1234 10.38.2.212 5678
+	FW: sudo iptables -P FORWARD DROP
+	    sudo src/natfwd -c testbed/setup_1a_tb20.conf; sudo ./flush -f
+	NR: sudo src/test_client -c testbed/setup_1_tb21.conf \
+		10.38.1.191 10.38.2.212 1234 5678 6; sudo ./flush
+	    netcat -l -p 5678
+
+1a2: NR <--- FW <--- NI
+	NR: sudo src/test_client -c testbed/setup_1_tb19.conf \
+		10.38.2.212 10.38.1.191 1234 5678 6; sudo ./flush
+	    netcat -l -p 5678
+	FW: sudo iptables -P FORWARD DROP
+	    sudo src/natfwd -c testbed/setup_1a_tb20.conf; sudo ./flush -f
+	NI: sudo src/test_client -c testbed/setup_1_tb21.conf \
+		10.38.2.212 10.38.1.191 1234 5678 6; sudo ./flush
+	    netcat -w 3 -p 1234 10.38.2.212 5678
+
+
+Test Setup 1b: NF is a NAT
+--------------------------
+
+The NF runs a NAT. The network on the left hand side is considered public,
+the other network is considered private. In case 1b1, the NI can't reach the
+NR directly. It has to use a an external address and port exchanged through
+a third channel.
+
+
+1b1: NI ---> NAT ---> NR
+	NI:  sudo src/test_client -c testbed/setup_1_tb19.conf \
+		10.38.1.191 10.38.1.201 1234 10000 6; sudo ./flush
+	     netcat -w 3 -p 1234 10.38.1.201 10000
+	NAT: sudo src/natfwd -c testbed/setup_1b_tb20.conf; sudo ./flush -f
+	NR:  sudo src/test_client -c testbed/setup_1_tb21.conf \
+		10.38.1.191 10.38.2.212 1234 5678 6; sudo ./flush
+	     netcat -l -p 5678
+
+1b2: NR <--- NAT <--- NI
+	NR:  sudo src/test_client -c testbed/setup_1_tb19.conf \
+		10.38.2.212 10.38.1.191 1234 5678 6; sudo ./flush
+	     netcat -l -p 5678
+	NAT: sudo src/natfwd -c testbed/setup_1b_tb20.conf; sudo ./flush -f
+	NI:  sudo src/test_client -c testbed/setup_1_tb21.conf \
+		10.38.2.212 10.38.1.191 1234 5678 6; sudo ./flush
+	     netcat -w 3 -p 1234 10.38.1.191 5678
+
+
+Test Setup 1c: NF is a both a NAT and a firewall
+------------------------------------------------
+
+This is almost identical to 1b, with the exception that firewall rules have to
+be installed, too.
+
+1c1: NI ---> NAT/FW ---> NR
+	NI:     sudo src/test_client -c testbed/setup_1_tb19.conf \
+		   10.38.1.191 10.38.1.201 1234 10000 6; sudo ./flush
+	        netcat -w 3 -p 1234 10.38.1.201 10000
+	NAT/FW: sudo src/natfwd -c testbed/setup_1c_tb20.conf; sudo ./flush -f
+	NR:     sudo src/test_client -c testbed/setup_1_tb21.conf \
+		   10.38.1.191 10.38.2.212 1234 5678 6; sudo ./flush
+	        netcat -l -p 5678
+
+1c2: NR <--- NAT/FW <--- NI
+	NR:     sudo src/test_client -c testbed/setup_1_tb19.conf \
+		   10.38.2.212 10.38.1.191 1234 5678 6; sudo ./flush
+	        netcat -l -p 5678
+	NAT/FW: sudo src/natfwd -c testbed/setup_1c_tb20.conf; sudo ./flush -f
+	NI:     sudo src/test_client -c testbed/setup_1_tb21.conf \
+		   10.38.2.212 10.38.1.191 1234 5678 6; sudo ./flush
+	        netcat -w 3 -p 1234 10.38.1.191 5678
+
+# EOF

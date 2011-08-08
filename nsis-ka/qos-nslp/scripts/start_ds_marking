@@ -1,0 +1,53 @@
+#! /bin/bash
+
+# Script for setting the DS-Byte of outgoing IPv6/UDP traffic to a certain value
+# e.g. % start_ds_marking 1234 0xb8
+#      -> marks all UDP traffic with port 1234 with DS-Byte 0xb8
+# for using this script "Networking/QoS" options must be enabled in the kernel
+
+TC=/sbin/tc
+IFDEV=eth1
+PORT=$1
+MARK=$2
+
+if [ $# -ne 2 ]
+then
+echo "Error: Usage $0 UDP_port_number DS_Byte"
+echo "e.g. $0 1234 0xb8"
+exit 2
+fi
+
+$TC qdisc add dev $IFDEV handle 1:0 root dsmark indices 64
+$TC class change dev $IFDEV classid 1:1 dsmark mask 0x3 value $MARK
+
+$TC filter add dev $IFDEV parent 1:0 protocol ipv6 prio 1 u32 divisor 1
+
+# Without Mobile IP
+$TC filter add dev $IFDEV parent 1:0 protocol ipv6 prio 1 u32 match ip6 \
+    dport $PORT 0xffff flowid 1:1
+    
+# Using destination options header (MIPv6 route optimisation)
+# -IPv6 next header = 0x3c (destination options header)
+# -Dest. Opt. next header = 0x11 (UDP)
+$TC filter add dev $IFDEV parent 1:0 protocol ipv6 prio 1 u32 \
+    match u8 0x3c 0xff at 6 \
+    match u8 0x11 0xff at 40 \
+    match u16 $PORT 0xffff at 66 flowid 1:1
+    
+# Using IP6 routing header (MIPv6 route optimisation)
+# -IPv6 next header = 0x2b (IPv6 routing header)
+# -Dest. Opt. next header = 0x11 (UDP)
+$TC filter add dev $IFDEV parent 1:0 protocol ipv6 prio 1 u32 \
+    match u8 0x2b 0xff at 6 \
+    match u8 0x11 0xff at 40 \
+    match u16 $PORT 0xffff at 66 flowid 1:1
+
+# Using IPv6 tunnel (no MIPv6 route optimisation)
+# -IPv6 next header = 0x29 (IPv6)
+# -IPv6 next header = 0x11 (UDP)
+$TC filter add dev $IFDEV parent 1:0 protocol ipv6 prio 1 u32 \
+    match u8 0x29 0xff at 6 \
+    match u8 0x11 0xff at 46 \
+    match u16 $PORT 0xffff at 82 flowid 1:1
+    
+    

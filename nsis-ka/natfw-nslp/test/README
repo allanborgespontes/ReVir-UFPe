@@ -1,0 +1,27 @@
+Test Suite for the NATFW NSLP
+-----------------------------
+
+This directory contains a test suite for the NATFW NSLP implementation.
+New tests can simply be placed into this directory (see basic.cpp for an
+example). The Makefile will build and run them automatically together with
+the existing tests (target: test).
+
+All tests use the cppunit testing framework (http://cppunit.sf.net), a C++
+implementation of the popular junit package. Cppunit is available as a
+Debian/Ubuntu package (libcppunit-dev), or via
+
+	https://sourceforge.net/project/showfiles.php?group_id=11795
+
+
+The CppUnit Cookbook:
+	http://cppunit.sourceforge.net/doc/lastest/cppunit_cookbook.html
+
+CppUnit Doxygen documentation:
+	http://cppunit.sourceforge.net/doc/lastest/index.html
+
+List of available assertions:
+	http://cppunit.sourceforge.net/doc/lastest/group___assertions.html
+
+-- 
+$Id: README 1707 2006-03-31 11:40:41Z stud-matfried $
+$HeadURL: https://svn.tm.kit.edu/nsis/natfw-nslp/trunk/test/README $

@@ -1,0 +1,9 @@
+# /bin/sh
+ip r a 10.10.4.0/24 via 10.10.2.3 dev eth1 
+ip r a 10.10.2.0/24 dev eth1  proto kernel  scope link  src 10.10.2.2 
+ip r a 10.10.3.0/24 via 10.10.1.1 dev eth2 
+ip r a 10.10.1.0/24 dev eth2  proto kernel  scope link  src 10.10.1.2 
+echo 1 >/proc/sys/net/ipv4/conf/eth1/forwarding
+echo 1 >/proc/sys/net/ipv4/conf/eth2/forwarding
+
+

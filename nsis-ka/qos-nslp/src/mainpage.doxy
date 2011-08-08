@@ -1,0 +1,18 @@
+/**
+
+@mainpage
+
+This is an implementation of the QoS-NSLP.
+It is based on a draft developed by the
+<a href="http://www.ietf-nsis.org">IETF NSIS Working Group</a>.
+
+
+@section architecture The Architecture 
+
+QoS NSLP implements all QoS NSLP PDUs and QoS NSLP Objects.
+
+This implementation provides classes for all entities described in the draft.
+
+The state machine is implemented in the file QoS_StateModule.
+
+*/

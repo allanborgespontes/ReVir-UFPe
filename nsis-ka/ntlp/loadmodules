@@ -1,0 +1,8 @@
+#! /bin/sh
+
+# load kernel modules
+
+modprobe iptable_filter
+modprobe ip_queue
+modprobe ip6table_filter
+modprobe ip6_queue

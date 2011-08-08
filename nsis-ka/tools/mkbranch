@@ -1,0 +1,79 @@
+#!/bin/bash
+# usage: mkbranch <branchname> [branchdir]
+# call this from either a dist/<component>/trunk dir or from
+# a branch (this will branch a branch).
+SVNDIR=`svn info --xml | sed -n -e '/^<root>/ { s/<root>\(.*\)<\/root>/\1/g; p }'`
+#SVNDIR=https://svn.ipv6.tm.uka.de/nsis
+DISTSUBDIR=`svn info | sed -n -e '/^URL:/ { s/^URL: .*\/dist\/\([^\/]*\)\/.*/\1/; p }'`
+#DISTSUBDIR should be the dist component like nsis-ka, qos-nslp-ka, gist-ka
+DISTSOURCE=`svn info | sed -n -e '/^URL:/ { s/^URL: \(.*\)/\1/; p }'`
+TMPEXTFILE=svn-externals.tmp
+TMPSVNWORKDIR=/tmp/tmp-svnwork.$$
+
+if [ "$1" = "" ]; then
+    read -p "input branch name (current date will be prepended):" branchname ;
+else
+    branchname=$1
+fi
+
+branchdir=branches
+if [ "$2" != "" ]; then
+    branchdir="$2"
+fi
+
+
+
+branchprefix=`date "+%Y%m%d"`
+branchname=$branchprefix-$branchname
+distbranch=$SVNDIR/dist/$DISTSUBDIR/$branchdir/$branchname
+distsource=$DISTSOURCE
+disthost=`echo $SVNDIR | sed -n -e '/[^:]\+:\/\/[^\/]\+\/.*/ { s/[^:]\+:\/\/\([^\/]\+\)\/\(.*\)/\1/; p }'`
+
+read -p "Do you really want to create $distbranch from $distsource ? (yes/no): " reallydoit
+
+if [ "$reallydoit" != "yes" ]; then
+  echo "Aborted on user request. Nothing done."
+  exit 1
+fi
+
+if [ -f $TMPEXTFILE ]; then
+    rm $TMPEXTFILE
+fi
+
+# create dist branch
+echo "branching: '$branchname'";
+echo -n "creating $distbranch ..."
+svn cp -m "Branch $branchname auto-generated" $distsource $distbranch
+echo  "done."
+
+# loop over all svn:externals and create a copy of each component in new branches subdir
+i=1; \
+for ext in `svn pg --strict svn:externals .`; do
+if [ $(($i % 2)) = 1 ]; then
+        localextname="$ext"
+else \
+        src="$ext"
+        hostext=`echo $src | sed -n -e '/[^:]\+:\/\/[^\/]\+\/.*/ { s/[^:]\+:\/\/\([^\/]\+\)\/\(.*\)/\1/; p }'`
+	if [ "$hostext" != "$disthost" ]; then
+	    #echo "host names of repository and externals are different"
+	    src=`echo $ext | sed -e 's/'$hostext'/'$disthost'/'`
+	    #echo "new source" $src
+	fi
+        branchdest=$SVNDIR/$localextname/$branchdir/$branchname
+	echo >>$TMPEXTFILE $localextname $branchdest
+	echo -n "creating branch $branchdest (copied from $src)..."
+        svn cp -m "- Branch $branchname auto-generated" $src $branchdest
+	echo "done."
+fi
+i=$(($i + 1))
+done
+
+# set the correct externals for the new branch
+echo "setting new svn:externals for $distbranch"
+svn checkout --quiet --depth=immediates --ignore-externals $distbranch $TMPSVNWORKDIR
+svn propset svn:externals --quiet -F $TMPEXTFILE $TMPSVNWORKDIR
+svn commit -m "- set externals for the auto-generated branch $branchname" $TMPSVNWORKDIR
+echo "done."
+rm $TMPEXTFILE 
+rm -rf $TMPSVNWORKDIR
+# end of script

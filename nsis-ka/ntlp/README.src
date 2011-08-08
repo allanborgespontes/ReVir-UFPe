@@ -1,0 +1,113 @@
+###########################################
+GISTka v%GIST_RELEASE% - README
+###########################################
+Welcome to this README on the GIST implementation
+of the Institute of Telematics, University of Karlsruhe (TH).
+ 
+This version is largely conforming to
+the protocol specification to draft-ietf-nsis-ntlp-29.txt
+(see http://tools.ietf.org/html/draft-ietf-nsis-ntlp-20)
+
+This implementation can be used in 2 ways:
+
+- as a library against which your program will link (as an example of how to
+  do this, please look at our QoS-NSLP implementation, which uses GISTka as
+  a library)
+
+- as a standalone instance providing the Unix Domain Socket API as defined by
+  the NSIS-Suite of the University of Göttingen.
+  The standalone instance comes with a small testing interface 
+  (GISTConsole) that can be enabled using --echo <nslpid> and
+  reached via telnet localhost 40023
+
+More Information:
+=================
+Please visit our TRAC site at
+
+https://nsis-ka.org/
+or
+https://i72svn.tm.kit.edu/trac/NSIS
+
+as it will show the latest releases and also
+contains additional documentation as well as 
+a bug tracker.
+
+Notes on building:
+==================
+- Unfortunately we have no configure or automake support yet.
+
+- The code was tested to build on 
+  SuSE Linux 9.2, 9.3, 10.0-10.2, Ubuntu 8.10,8.04,7.10,7.04,6.06, Fedora 6 
+  using GCC 3.3.5 as well as GCC 4.0, 4.1, 4.2
+
+- To build the program/library, be sure to have the following libraries installed:
+  
+  x libIPQ (in some Linux distributions, part of "iptables-devel")
+  x OpenSSL 0.97e or higher
+  x ProtLib library of the Institute of Telematics
+    (already included if you checked GIST out of our SVN. 
+    Extract to "protlib" directory on the same level as "src" and "include"
+    otherwise )
+
+  If you want to use GIST with SCTP as transport protocol, you need the 
+  development files (e.g. libsctp-dev package under Ubuntu). 
+  Use 
+  make SCTP_KERN=1 
+  to build GISTka with SCTP support.
+
+- Type "make" to build Protlib, GIST Standalone instance and libGist.
+  If you get errors for ipv6 socket functions like inet6_opt_init()
+  probably don't have a newer glibc with advanced IPv6 API support 
+  according to RFC3542.
+  Try 
+  make USE_RFC2292=1
+  to compile it with the obsolete RFC interface.
+
+Notes on execution:
+===================
+- The "gist" wrapper script will start the standalone instance
+- The "loadmodules" script will load IPQueue kernel module
+- The "intercept" script will set up iptables rules for packet interception
+- The "flush" script unsets these rules
+- The standalone instance as well as any program using the GIST library must
+  be run as "root"
+The GIST standalone instance will call "intercept" automatically.
+
+You could now connect to the running GIST instance by typing 
+telnet localhost 40023
+on the same machine. You can shutdown the running instance
+using the command "shutdown". 
+Please look further details up in 
+testing/README.TESTING
+
+Note: If iptables rules are in place, UDP packets are intercepted (usually
+only for the specific GIST well-known port). Better always clean up the rules 
+via "flush" after program execution in order to avoid capturing other UDP
+packets ("gist" wrapper script does so automatically).
+
+TLS use:
+=======
+You must create certificates first. Please look into the
+"scripts/" subdirectory. The following default names are used:
+client_cert.pem    (Client certificate -> used for validating a connecting client)
+client_privkey.pem (Client private key -> must be transferred to client connecting to us)
+root_cert.pem      (CA certificate)
+
+
+This program was initially written by Thomas Herzog as part of 
+his diploma thesis. If you have got questions or bug reports, 
+you may contact:
+
+Roland Bless, bless <at> kit.edu (Institute of Telematics)
+
+-------------------------------------------------------
+Copyright (C) 2005-2010, all rights reserved by
+Institute of Telematics, Karlsruhe Institute of Technology (KIT)
+-------------------------------------------------------
+
+See license directory for further licensing information
+
+-------------------------------------------
+$Id: README.src 5628 2010-09-21 06:58:57Z bless $
+$HeadURL: https://svn.tm.kit.edu/nsis/ntlp/trunk/README.src $
+-------------------------------------------

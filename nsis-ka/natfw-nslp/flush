@@ -1,0 +1,65 @@
+#! /bin/sh
+#
+# Remove all GIST/NATFW iptables rules that the natfw implementation has added.
+#
+# Usage: sudo ./flush [-f]
+#
+# The f-Switch should be given for forwarders.
+#
+
+IS_FORWARDER=false
+
+GIST_PORT_UDP=4
+NATFWD_FILTER_CHAIN=natfwd_filter
+NATFWD_DNAT_CHAIN=natfwd_dnat
+NATFWD_SNAT_CHAIN=natfwd_snat
+
+
+while getopts 'f' OPT; do
+	case $OPT in
+		f)	IS_FORWARDER=true;;
+	esac
+done
+
+shift `expr $OPTIND - 1`
+
+
+# Remove the IPv4 filter rules set by GIST.
+#
+iptables -D INPUT -p udp --dport $GIST_PORT_UDP -j QUEUE
+iptables -D FORWARD -p udp --dport $GIST_PORT_UDP -j QUEUE
+
+# Remove the IPv6 filter rules set by GIST.
+#
+ip6tables -D INPUT -p udp --dport $GIST_PORT_UDP -j QUEUE
+ip6tables -D FORWARD -p udp --dport $GIST_PORT_UDP -j QUEUE
+
+
+# Don't continue if this isn't a forwarder.
+#
+if [ $IS_FORWARDER == false ]; then
+	exit
+fi
+
+
+# Remove the reference to our user-defined filter chain and then delete the
+# chain and its rules.
+#
+iptables -D FORWARD -j $NATFWD_FILTER_CHAIN
+iptables -F $NATFWD_FILTER_CHAIN
+iptables -X $NATFWD_FILTER_CHAIN
+
+# Remove the reference to our user-defined NAT chains and then delete the
+# chains and their rules.
+#
+iptables -t nat -D PREROUTING -j $NATFWD_DNAT_CHAIN
+iptables -t nat -F $NATFWD_DNAT_CHAIN
+iptables -t nat -X $NATFWD_DNAT_CHAIN
+iptables -t nat -D POSTROUTING -j $NATFWD_SNAT_CHAIN
+iptables -t nat -F $NATFWD_SNAT_CHAIN
+iptables -t nat -X $NATFWD_SNAT_CHAIN
+
+
+# TODO: ip6tables
+
+# EOF

@@ -1,0 +1,146 @@
+# -----------------------------------*- mode: Makefile; -*--
+# Makefile - Top-level Makefile for GISTka
+# ----------------------------------------------------------
+# $Id: Makefile.gmake 6176 2011-05-20 07:39:55Z bless $
+# $HeadURL: https://svn.tm.kit.edu/nsis/ntlp/trunk/Makefile.gmake $
+# ==========================================================
+#
+# Makefile arguments:
+# (for protlib)
+# SCTP_KERN=1    - compile with SCTP support
+# backwards compatibility
+# USE_RFC2292=1  - use if glibc does not support RFC3542 yet (e.g., inet6_opt_init())
+#                      
+# Copyright (C) 2005-2007, all rights reserved by
+# - Institute of Telematics, Universitaet Karlsruhe (TH)
+#
+# More information and contact:
+# https://projekte.tm.uka.de/trac/NSIS
+#                      
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# ===========================================================
+
+
+
+GIST_SRC=src
+GIST_INC=include
+
+DISTDIR?=$(CURDIR)/..
+TOPLEVELMAKEINC=$(DISTDIR)/Makefile.inc
+
+include $(TOPLEVELMAKEINC)
+
+TEST_SRC	= test
+
+# sub directories that have their own Makefiles
+MKSUBDIRS	= $(GIST_SRC) $(PROTLIB_SRC) $(FQUEUE_SRC) $(TEST_SRC)
+.PHONY:		subdirs $(MKSUBDIRS)
+
+
+# what to include in the tarball
+-include	GIST-KA-RELEASE
+DISTARCHIVE	= gist-ka-$(GIST_RELEASE).tar.gz
+DISTDIRNAME	= gist-ka-$(GIST_RELEASE)
+DISTFILES	= $(GIST_INC) $(GIST_SRC) $(PROTLIB_DIR) $(TEST_SRC) \
+	          scripts Doxygen.conf flush gist gist-debug gist.conf intercept loadmodules Makefile README
+DISTEXCL	= --exclude .svn --exclude */.svn --exclude */*/.svn --exclude testing
+
+TAGSFILES	= $(wildcard $(GIST_INC)/*.h) $(wildcard $(PROTLIB_INC)/*.h) $(wildcard $(FQUEUE_INC)/*.h) $(wildcard $(GIST_SRC)/*.h) $(wildcard $(GIST_SRC)/pdu/*.h) \
+                  $(wildcard $(GIST_SRC)/*.cpp) $(wildcard $(GIST_SRC)/pdu/*.cpp) $(wildcard $(PROTLIB_SRC)/*.cpp) $(wildcard $(FQUEUE_SRC)/*.c)
+
+
+all: gist
+
+.PHONY: clean distclean cleandocs docs all gist localclean setperms TAGS tags \
+	libs test freshdepend depend ebrowse prependheader svnprops showfiles
+
+gist:
+	$(MAKE) -C $(GIST_SRC)
+
+setperms:
+	$(MAKE) -C $(GIST_SRC) setperms
+
+libs:
+	$(MAKE) -C $(GIST_SRC) libs
+
+test: gist
+	$(MAKE) -C $@ test
+
+tests:
+	for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir tests ; done
+
+docs:
+	- rm -f doxygen.log
+	- doxygen Doxygen.conf
+
+svnprops:
+	- for file in $(TAGSFILES); do svn propset svn:keywords "Id HeadURL Rev" $$file ; done
+
+prependheader:
+	- for file in $(TAGSFILES); do sed -e "s/%filename%/$${file##*/}/" src/headercomment-template.txt | cat - $$file >$$file.new; mv $$file.new $$file  ; done 
+
+showfiles:
+	- @echo $(TAGSFILES)
+
+cleandocs:
+	- rm -rf doc/
+
+localclean:
+	- rm -f *~ *.log TAGS BROWSE depend README
+
+clean: localclean
+	for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir clean ; done
+
+distclean: clean localclean cleandocs
+	- for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir distclean ; done
+
+distrib: distclean README
+	- rm -rf $(DISTDIRNAME); mkdir $(DISTDIRNAME)
+	- tar $(DISTEXCL) -cf - $(DISTFILES) | tar -C $(DISTDIRNAME) -xf - && tar -czvf $(DISTARCHIVE) $(DISTDIRNAME)
+
+releasetag:
+	SVNPROTLIB_URL=`svn info ${PROTLIB_DIR} | grep ^URL: | sed -e 's/URL: //'`; \
+	SVNPROTLIB_TAGS_URL=`echo $$SVNPROTLIB_URL | sed -e 's/trunk$$/tags/'`; \
+	SVNGIST_URL=`svn info | grep ^URL: | sed -e 's/URL: //'`; \
+	SVNGIST_TAGS_URL=`echo $$SVNGIST_URL | sed -e 's/trunk$$/tags/'`; \
+	svn cp -m "tag for release ${GIST_RELEASE}" $$SVNPROTLIB_URL $$SVNPROTLIB_TAGS_URL/releases/gist-ka-${GIST_RELEASE}; \
+	svn cp -m "tag for release ${GIST_RELEASE}" $$SVNGIST_URL $$SVNGIST_TAGS_URL/releases/gist-ka-${GIST_RELEASE}
+
+
+README: README.src
+	@sed -e "s/%GIST_RELEASE%/${GIST_RELEASE}/" $^ >$@
+
+tags: TAGS ebrowse
+
+TAGS:	
+	-@echo -n "Creating TAGS file..."
+	-@etags  --language-force=C++ $(TAGSFILES)
+	-@echo "done."
+
+ebrowse:
+	-@echo -n "Creating BROWSE file..."
+	- @ebrowse $(TAGSFILES)
+	-@echo "done."
+
+depend:
+	- for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir depend ; done
+
+freshdepend:
+	- for dir in $(MKSUBDIRS); do $(MAKE) -C $$dir freshdepend ; done
+
+$(TOPLEVELMAKEINC):
+	$(error "Sorry, but this component is not meant to be compiled alone, please use the dist tree of the SVN https://svn.ipv6.tm.uka.de/nsis/dist/")
+
+#end of Makefile

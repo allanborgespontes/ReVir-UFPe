@@ -1,0 +1,9 @@
+Benchmarks for the QoS-NSLP QSPEC Template implementation
+---------------------------------------------------------
+
+This directory contains several benchmarks for the QSPEC Template
+implementation. They all inherit from Benchmark, an abstract helper class.
+
+-- 
+$Id: README 896 2005-11-17 11:54:18Z stud-matfried $
+$HeadURL: https://svn.tm.kit.edu/nsis/qspec/trunk/eval/README $

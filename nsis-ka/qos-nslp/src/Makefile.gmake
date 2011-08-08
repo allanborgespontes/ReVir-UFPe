@@ -1,0 +1,206 @@
+# -----------------------------------*- mode: Makefile; -*--
+# Makefile - Makefile for QOS NSLP
+# ----------------------------------------------------------
+# $Id: Makefile.gmake 6176 2011-05-20 07:39:55Z bless $
+# $HeadURL: https://svn.tm.kit.edu/nsis/qos-nslp/trunk/src/Makefile.gmake $
+# ==========================================================
+#                      
+# (C)opyright, all rights reserved by
+# - Institute of Telematics, University of Karlsruhe (TH)
+# ==========================================================
+#
+# The following Makefile variables may be used:
+#     LOGGING        Enable logging output (default: active)
+#     DEBUGGING      Enable debugging (default: active)
+#     OPTIMIZATION   Optimize using the given flags (default: '')
+#
+# Don't forget to run "make clean" before changing these variables!
+# An example for building without debugging but with logging support and
+# optimization:
+#
+#     make DEBUGGING= LOGGING=1 OPTIMIZATION=-O2
+#
+
+DISTDIR?=$(CURDIR)/../..
+include $(DISTDIR)/Makefile.inc
+
+DEBUGGING	= 1			# the undefined value disables debugging
+LOGGING		= 1			# the undefined value disables logging
+OPTIMIZATION	= 			# ie. -O2
+
+ifdef DEBUGGING
+QOS_CXXFLAGS	+= -g -D_DEBUG
+endif
+
+ifndef LOGGING
+QOS_CXXFLAGS	+= -D_NO_LOGGING
+endif
+
+QOS_CXXFLAGS	+= $(OPTIMIZATION)
+
+
+
+#SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ -e s/arm.*/arm/ -e s/sa110/arm/)
+#ARCH := $(SUBARCH)
+
+#export UNAME_MACHINE := "$(ARCH)"
+
+include ../QOSNSLP-KA-RELEASE
+
+CFLAGS	        = --pedantic -Wno-long-long -Wall $(QOS_CXXFLAGS) -D QOSNSLP_VSTR=\"$(QOSNSLP_RELEASE)\"
+#CFLAGS	       += -Wno-deprecated -Werror
+
+
+ifdef USE_FLOWINFO
+CFLAGS	       += $(FLOWINFO_CFLAGS)
+endif
+
+ifeq ($(USE_AHO), 1)
+QOSOPTIONS += -D USE_AHO
+endif
+
+CLINK		= -c -o
+CC              = gcc
+CPP             = g++
+RM              = rm -f
+
+TARGETS = $(QOSNSLPLIB) qosnslp client
+
+QOSNSLP_LLIB      = qosnslp
+QOSNSLPLIB        = lib$(QOSNSLP_LLIB).a
+QOSNSLPLIB_SHARED = lib$(QOSNSLP_LLIB).so
+
+
+QOSNSLP_OBJS =  qos_nslp.o ProcessingModule.o rsn.o rii.o refresh_period.o bound_sessionid.o qspec.o nslp_ie.o \
+		reservemsg.o responsemsg.o querymsg.o notifymsg.o packet_classifier.o nslp_session_context_map.o \
+		info_spec.o nslp_object.o nslp_pdu.o nslp_session_context.o nslp_flow_context.o aggregate.o \
+		rmf.o QoS_StateModule.o QoS_Appl_Msg.o SignalingAppl.o QoS_NSLP_API.o QoS_NSLP_Client_API.o \
+	       	QoS_NSLP_UDS_API.o TestConsole.o session_id_list.o rsn_list.o qos_nslp_conf.o qosnslp_starter.o
+ifeq ($(USE_AHO), 1)
+QOSNSLP_OBJS += qos_nslp_aho_contextmap.o nslp_aho_context.o QoS_StateModule_AHO_Processing.o
+endif
+
+LIBS		= $(PROTLIB_LIB) $(NTLP_LIB) $(QSPEC_LIB) $(FQUEUE_LIB)
+
+SHLIBS		= -lrt
+STATIC_LIBS	= -lipq -lssl $(SCTP_LIBLD)
+
+INC		= ../include
+INCLUDE		= -I$(INC) -I$(NTLP_INC) -I$(QSPEC_INC) -I$(PROTLIB_INC) -I$(FQUEUE_INC) $(SCTP_INCLUDE)
+LIBDIRS		= -L$(FQUEUE_SRC) -L$(PROTLIB_SRC) -L$(NTLP_SRC) -L$(QSPEC_SRC)
+
+ifdef SCTP_KERN
+SCTP_LIBLD      = -lsctp
+SCTP_OPTIONS	= -D_USE_SCTP
+CFLAGS		+= $(SCTP_OPTIONS)
+PROTLIB_MAKEFLAGS += SCTP_KERN=yo
+endif
+
+.SUFFIXES:	.cpp
+
+.PHONY: clean distclean dellogs clobber setperms TAGS freshdepend
+
+.DEFAULT:
+	@echo "Don't know how to make target $<."
+	@echo "Have a look at"
+	@echo "   `pwd`/Makefile"
+	@echo "and maybe change some variables, e.g. SCTP_DIR."
+	@false
+
+## ----------------------------------------------------------------------------------------------
+
+all:     $(TARGETS)
+
+
+setperms:
+#	test -x qos && su -c 'chown root qos ; chmod u+s qos' ; true
+#	test -x test_setuid && su -c 'chown root test_setuid ; chmod u+s test_setuid' ; true
+#	test -x test_tp_over_sctp && su -c 'chown root test_tp_over_sctp ; chmod u+s test_tp_over_sctp' ; true
+#	test -x test_signaling && su -c 'chown root test_signaling ; chmod u+s test_signaling' ; true
+	test -x ProcessingModule && su -c 'chown root ProcessingModule ; chmod u+s ProcessingModule' ; true
+
+#qos:    $(QOSNSLP_OBJS) $(LIBS)
+#	$(CPP) $(CFLAGS) -o $@ $(QOSNSLP_OBJS) $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+qosnslp: qosnslpd.o $(QOSNSLPLIB) $(LIBS)
+	$(CPP) $(CFLAGS) $(QOSOPTIONS) -o $@ qosnslpd.o -L. -l$(QOSNSLP_LLIB) $(LD_QSPEC) $(LD_NTLP_LIB) $(LD_PROTLIB_LIB) $(LD_FQUEUE_LIB) $(SHLIBS) $(STATIC_LIBS)
+
+client: client.o $(QOSNSLPLIB) $(LIBS)
+	$(CPP) $(CFLAGS) $(QOSOPTIONS) -o $@ client.o  -L. -l$(QOSNSLP_LLIB) $(LD_QSPEC) $(LD_NTLP_LIB) $(LD_PROTLIB_LIB) $(LD_FQUEUE_LIB) $(SHLIBS) $(STATIC_LIBS)
+
+$(QOSNSLPLIB): $(QOSNSLP_OBJS)
+	ar -rsv $@ $?
+
+$(QOSNSLPLIB_SHARED): $(QOSNSLP_OBJS)
+	$(CPP) $(QOSOPTIONS) -shared -o $@ $?
+
+libs:	$(LIBS)
+
+# always checks for new things in nslp subdirs
+nslplib:
+		$(MAKE) -C $(PROTLIB_SRC)  $(PROTLIB_MAKEFLAGS)
+
+$(PROTLIB_LIB):
+		$(MAKE) -C $(PROTLIB_SRC)  $(PROTLIB_MAKEFLAGS) $(@F)
+
+$(NTLP_LIB):
+		$(MAKE) -C $(NTLP_SRC)  $(NTLP_MAKEFLAGS) $(@F)
+
+$(QSPEC_LIB):
+		$(MAKE) -C $(QSPEC_SRC)  $(QSPEC_MAKEFLAGS) $(@F)
+
+$(FQUEUE_LIB): 
+		$(MAKE) -C $(FQUEUE_DIR) 
+
+clean:
+		$(RM) *.o $(QOSNSLPLIB) $(QOSNSLPLIB_SHARED) *~ core $(INC)/*~ depend
+
+dellogs:
+		$(RM) *.log
+
+distclean: 	clean dellogs
+		$(RM) $(TARGETS)
+		$(RM) -r cxx_repository
+		$(RM) so_locations
+
+clobber:	distclean
+
+depend:
+	$(RM) depend
+	$(CPP) $(QOSOPTIONS) -MM *.cpp $(INCLUDE) > depend
+
+freshdepend:
+	$(CPP) $(QOSOPTIONS) -MM *.cpp $(INCLUDE) > depend
+
+TAGS:
+	etags --language=c++ $(INC)/*.h *.cpp $(PROTLIB_INC)/*.h $(PROTLIB_SRC)/*.cpp
+
+atom:		all
+		rm -f libfastqueue.a
+		ln -s ../fastqueue/libfastqueue.a .
+		atom qos -tool third -env threads -L. -all
+		@echo setenv LD_LIBRARY_PATH .
+atomclean:
+		rm -f lib*.threads qos.third.threads qos.3log libfastqueue.a
+
+ls:		
+		@ls -x --width=60 *.cpp > .ls.tmp
+		@cat .ls.tmp |  sed s/\	/\ /g | sed s/\ \ /\ /g  > .ls.sed.tmp
+		@echo ""
+		@cat .ls.sed.tmp | sed s/\ \ /\ /g
+		@echo ""
+		@cat .ls.sed.tmp | sed s/\ \ /\ /g | sed s/\.cpp/\.o/g
+		@echo ""
+		@rm -f .ls.tmp .ls.sed.tmp
+
+#buildinc: qos_version.h
+#	perl -i -n -e 'if (/(\$Build: )([[:digit:]]+)(\s*\$)/) { $newbuildno=$2+1; $oldstr=qr/\Q$1$2$3\E/; $newstr=qq/$1$newbuildno$3/; s/$oldstr/$newstr/; print $_ } #else { print $_; } ' qos_version.h
+
+#compile rules
+
+%.o:		%.cpp
+		$(RM) $@
+		$(CPP) $(CFLAGS) $(QOSOPTIONS) $(CLINK) $@ $(INCLUDE) $<
+
+### DO NOT DELETE THIS LINE -- make depend depends on it.
+-include depend

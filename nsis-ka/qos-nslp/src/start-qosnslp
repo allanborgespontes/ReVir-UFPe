@@ -1,0 +1,46 @@
+#!/bin/bash
+
+
+LOGDIR=testing/logs
+LINKEDFILES="loadmodules intercept flush"
+CONFDIR="../../etc"
+
+
+if [ \! -d $LOGDIR ]; then   mkdir -p $LOGDIR; fi
+
+for file in $LINKEDFILES; do
+  if [ \! -e $file ]; then  ln -s ../../ntlp/$file .; fi
+done
+
+# define a signal handler function
+handle_sigint()
+{
+	true
+}
+
+# load kernel modules
+./loadmodules
+
+# activate the signal handler
+# This signal handler is called after all child processes (i.e. qosnslp)
+# have been signaled SIGINT and have terminated and gives control back
+# to the script
+trap handle_sigint SIGINT
+
+# tell bash to ignore SIGINT signal
+trap '' INT
+
+PCAPFILEETH0="$LOGDIR/tcpdump-`date +%F-%T`-`hostname`-$$-eth0.pcap"
+tcpdump -s 1500 -i eth0 -w $PCAPFILEETH0 &
+
+LOGFILE="$LOGDIR/test-`date +%F-%T`-`hostname`-$$"
+./qosnslpd -s -c ${CONFDIR}/nsis-ka.conf $* 2>&1 | tee -i $LOGFILE
+
+kill %%
+
+# change ownership of logfiles if this script is called via sudo
+if [ "$SUDO_UID" != "" ]; then
+	chown $SUDO_UID:$SUDO_GID $LOGFILE
+fi
+
+./flush

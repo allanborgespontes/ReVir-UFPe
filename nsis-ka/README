@@ -1,0 +1,93 @@
+README: dist
+------------
+This is the NSIS-ka suite from the Karlsruhe Institute of Technology (KIT).
+Home of the source code is here: http://nsis-ka.org/
+or if this doesn't work, try https://svn.tm.kit.edu/trac/NSIS
+
+The NSIS protocol suite is defined by the following documents:
+http://tools.ietf.org/html/rfc5971 (GIST)
+http://tools.ietf.org/html/rfc5973 (NAT/Firewall Signaling)
+http://tools.ietf.org/html/rfc5974 (Quality-of-Service Signaling)
+http://tools.ietf.org/html/rfc5975 (QSPEC Template)
+http://tools.ietf.org/html/rfc5981 (Session Authorization Object) (optional)
+
+This is a distribution directory for all NSIS-ka components.  
+
+Currently these are:
+
+ Name		| Dependencies		| Base location | RFC
+----------------+-----------------------+----------------------------
+ protlib	| none			| PROTLIB_DIR   | n/a
+		|			| FQUEUE_DIR    | n/a
+ ntlp		| protlib		| NTLP_DIR      | rfc5971
+ natfw-nslp	| protlib, ntlp		| NATFW_DIR     | rfc5973
+ qos-nslp	| protlib, ntlp, qspec, | QOSNSLP_DIR   | rfc5974
+                | sessionauth	        |               |
+ qspec		| protlib		| QSPEC_DIR     | rfc5975
+ sessionauth    | protlib, qos-nslp     | AUTH_DIR      | rfc5981
+
+Each single component is contained in an own directory and 
+knows its dependencies and will include and build  them as required. 
+
+HOW TO COMPILE
+--------------
+This suite uses the autotools (automake, configure)
+suite. If you've got the source code with a "configure" file,
+simply run
+
+./configure
+make
+make install
+
+If the configure file is missing, you can create one if you
+have autotools installed (e.g., apt-get install automake autoconf)
+then simply run
+make -f Makefile.svn
+(which should run the command autoreconf --install for you)
+
+Due to the silent-rules option we require automake 1.11,
+you may use earlier versions if deleting these statements
+at the beginning of configure.ac files. Silent build is
+on by default, to see full make output use 
+make V=1
+
+
+OPTIONS
+-------
+You can pass the following options to configure:
+
+(Protlib)
+  --disable-debug         disable debug code (default: debugging enabled)
+  --disable-logging       disable logging output (default: logging enabled)
+  --enable-sctp           compile with SCTP support (default: SCTP disabled)
+(GIST)
+  --use-flowinfo          use flowinfo module for mobility support (default:
+                          disabled)
+
+
+PROBLEMS?
+---------
+In case of any problems, please check for any open/closed tickets
+in our TRAC or try the latest trunk code from the svn:
+svn co https://svn.tm.kit.edu/nsis/dist/nsis-ka/trunk/
+
+DIRECTORY ORGANIZATION
+----------------------
+In order to find the sources the respective Makefiles take input from
+``Makefile.inc'' which defines all required locations.
+
+All locations are relative to DISTDIR.  This allows to build individual
+components ``free-standing'' to support branch building without the
+need to branch dist, maintain local ``svn:externals'' or ``svn
+switch''ed working copies.  Instead one can checkout a base dist and
+build a branch against this base by setting DISTDIR accordingly.
+tools/mkbranch is a script that tries to do that automatically.
+
+Further more individual components can be used from different locations
+by setting the respective base location.
+
+tools/tag-release is a tiny shell script that helps with release
+tagging.  Given a name for the release it will produce a couple of svn
+commands to copy the selected svn:externals into a tag-directory under
+the dist hierarchy.
+

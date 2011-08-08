@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# $1 die Anzahl der Durchlaufe eines einzelnen Tests
+# $2 die Anzahl der Tests
+
+serWHmacData=ser_w_hmac.dat
+serWOHmacData=ser_wo_hmac.dat
+deserWHmacData=deser_w_hmac.dat
+deserWOHmacData=deser_wo_hmac.dat
+getKeyData=get_key_data.dat
+
+
+#for j in 10 50 100 500 1000 5000 10000
+#do
+
+rm -f $serWHmacData $serWOHmacData $deserWHmacData $deserWOHmacData $getKeyData
+
+#  for (( i=0; i<$2; i++ ))
+ # do
+    ./auth_benchmark $1 $j 2>&1 > /dev/null
+    # ser w hmac and calc & ser hmac 
+    ./eval_journal.py 21 22 < benchmark_journal.txt >> $serWHmacData
+    # ser wo hmac
+    ./eval_journal.py 25 26 < benchmark_journal.txt >> $serWOHmacData
+    # deser w hmac and calc & check hmac 
+    ./eval_journal.py 23 24 < benchmark_journal.txt >> $deserWHmacData
+    # deser wo hmac
+    ./eval_journal.py 27 28 < benchmark_journal.txt >> $deserWOHmacData
+    # get key from registry 
+    ./eval_journal.py 50 51 < benchmark_journal.txt >> $getKeyData
+  #done
+
+echo "with $j hmac keys stored:"
+
+sum_mean_ser_w_hmac=$(awk 'BEGIN{sum=0} $5!="Mean" {sum+=$5} END{print sum}' < $serWHmacData )
+sum_mean_ser_wo_hmac=$(awk 'BEGIN{sum=0} $5!="Mean" {sum+=$5} END{print sum}' < $serWOHmacData )
+awk 'BEGIN { print "HMAC calc & serialize time (in ns) : " ('$sum_mean_ser_w_hmac-$sum_mean_ser_wo_hmac') / '$2' "\t(" '$sum_mean_ser_w_hmac'/'$2' "-" '$sum_mean_ser_wo_hmac' / '$2' ")" }'
+awk 'BEGIN { print "HMAC calc & serialize time (in % ) : " ( ('$sum_mean_ser_w_hmac' / '$sum_mean_ser_wo_hmac') - 1) *100 }'
+
+sum_mean_deser_w_hmac=$(awk 'BEGIN{sum=0} $5!="Mean" {sum+=$5} END{print sum}' < $deserWHmacData )
+sum_mean_deser_wo_hmac=$(awk 'BEGIN{sum=0} $5!="Mean" {sum+=$5} END{print sum}' < $deserWOHmacData )
+awk 'BEGIN { print "HMAC calc & check time (in ns) : " ('$sum_mean_deser_w_hmac-$sum_mean_deser_wo_hmac') / '$2' "\t(" '$sum_mean_deser_w_hmac'/'$2' "-" '$sum_mean_deser_wo_hmac' / '$2' ")" }'
+awk 'BEGIN { print "HMAC calc & check time (in % ) : " ( ('$sum_mean_deser_w_hmac' / '$sum_mean_deser_wo_hmac') - 1) *100 }'
+
+sum_mean_get_key=$(awk 'BEGIN{sum=0} $5!="Mean" {sum+=$5} END{print sum}' < $getKeyData )
+awk 'BEGIN { print "time to get key from registry (in ns) : " '$sum_mean_get_key' / '$2' "\t(" '$sum_mean_get_key' "/" '$2' ")" }'
+echo ""
+
+#done

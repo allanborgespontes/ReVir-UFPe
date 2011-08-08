@@ -1,0 +1,8 @@
+#!/bin/bash
+if [ ! -e "root_cert.srl" ]; then
+  echo 01 >root_cert.srl; # create file with serial number
+fi
+openssl req -config root.cnf -new -nodes -keyout root_privkey.pem -out root_cert.req
+openssl req -in root_cert.req -text
+openssl x509 -days 366 -req -in root_cert.req -signkey root_privkey.pem -out root_cert.pem
+openssl x509 -in root_cert.pem -noout -text

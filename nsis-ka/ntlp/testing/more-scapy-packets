@@ -1,0 +1,4 @@
+# Packet with length 0 and no flags set
+a=IP(dst="141.3.71.201",options="\x94\x04\x00\x00")/UDP(dport=4)/"\x4e\x04\xbd\xa5\x01\xff\x00\x00\x00\x0c\x00\x00"
+
+sr(a)

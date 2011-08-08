@@ -1,0 +1,21 @@
+Scripts for TLS
+---------------
+simply create a CA:
+./mkca
+create a certificate for every IP address of the 
+connecting clients:
+./mkcert 10.0.0.1
+
+Then copy the 10.0.0.1_cert.pem to client_cert.pem
+and 10.0.0.1_privkey.pem to client_privkey.pem.
+The certificates (client_cert.pem, root_cert.pem) 
+must be put into the directory
+where the gist script is located. 
+The client_privkey.pem must be transferred to the client connecting 
+to us.
+
+The implementation uses the following names as default:
+"client_cert.pem" for the client certificate
+"client_privkey.pem" for the client private key
+"root_cert.pem" for the CAs certificate
+

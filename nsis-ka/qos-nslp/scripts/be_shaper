@@ -1,0 +1,146 @@
+#!/usr/bin/wish
+
+# AR traffic shaper
+# This program forwards DiffServ marked IPv6/UDP packets
+# according to a rate set by the user interface
+# Unmarked IPv6/UDP packets are dropped
+# All other packets can pass 
+#
+
+
+# This program treats the traffic as follows:
+# 1. It shapes all unmarked IPv6/UDP packets (0x0) to the
+#    chosen bit rate on the buttons
+# 2. It forwards any other packets
+
+set iwconfig "/sbin/iwconfig"
+set ifdev "eth0"
+set tc "/sbin/tc"
+
+# main procedure for graphical output
+proc screen {} {
+
+  # window title
+  wm title . "IPv6 DiffServ BE Traffic Shaper v0.92"
+  
+  global rate begin 
+
+  # frame for menubar at the top of the windows
+  frame .menubar -bd 2 -relief raised
+  menubutton .menubar.file -underline 0 -text "File" -menu .menubar.file.menu
+  menu .menubar.file.menu
+  .menubar.file.menu add command -label "Exit" -underline 1 -command { exit }
+  pack .menubar.file -side left
+  
+  # frame containing the switch buttons
+  frame .switch1 
+  pack .switch1 -fill y
+  label .switch1.text -text "Bit rate limit for IPv6/UDP best effort traffic (Traffic class = 0):"
+  pack .switch1.text -side left
+  
+  frame .switch2 
+  button .switch2.rate1 -text "50 kbit/s" -command { limit_on 50 }
+  button .switch2.rate2 -text "500 kbit/s" -command { limit_on 500 }
+  button .switch2.rate3 -text "1 Mbit/s" -command { limit_on 1000 }
+  button .switch2.rate4 -text "1.5 Mbit/s" -command { limit_on 1500 }
+  button .switch2.rate5 -text "2 Mbit/s" -command { limit_on 2000 }
+  button .switch2.rate6 -text "5 Mbit/s" -command { limit_on 5000 }
+  button .switch2.rate7 -text "Filtering off" -command { limit_off }
+  pack .switch2.rate1 .switch2.rate2 .switch2.rate3 .switch2.rate4 .switch2.rate5 .switch2.rate6 .switch2.rate7 -side left
+  
+  frame .switch3 
+  pack .switch3 -fill y
+  label .switch3.text -text "No limit for other traffic"
+  pack .switch3.text -side left
+
+  
+  # frame containing the docomo logo
+  frame .misc -borderwidth 10
+  pack .misc -fill x
+#  set telematics [image create photo -file ./telematics.png]
+#  label .misc.picture -image $telematics
+#  pack .misc.picture
+  
+  # more detailed placement of items by using a grid 
+  # (table with columns and rows)
+  grid config .menubar -column 0 -row 0 \
+       -columnspan 2 -rowspan 1 -sticky "snew"
+  grid config .switch1 -column 0 -row 1 \
+    -columnspan 1 -rowspan 1 -sticky "snew"
+  grid config .switch2 -column 0 -row 2 \
+    -columnspan 1 -rowspan 1 -sticky "snew"
+  grid config .switch3 -column 0 -row 3 \
+    -columnspan 1 -rowspan 1 -sticky "snew"
+  grid config .switch3 -column 0 -row 4 \
+    -columnspan 1 -rowspan 1 -sticky "snew"
+  grid config .misc -column 1 -row 1 \
+    -columnspan 1 -rowspan 4 -sticky "snew"
+
+}
+
+proc limit_on {rate} {
+
+  global tc ifdev begin
+  set kilo "Kbit"
+  
+  limit_off
+
+  exec $tc qdisc add dev $ifdev handle 1:0 root dsmark indices 64
+  exec $tc class change dev $ifdev classid 1:1 dsmark mask 0x3 value 0x0
+  exec $tc class change dev $ifdev classid 1:2 dsmark mask 0x3 value 0x0
+  exec $tc class change dev $ifdev classid 1:3 dsmark mask 0x3 value 0x0
+  exec $tc class change dev $ifdev classid 1:4 dsmark mask 0x3 value 0x0
+  exec $tc class change dev $ifdev classid 1:5 dsmark mask 0x3 value 0xb8
+
+   
+  # filter for IPv=6 and DSCP=00 and dest.options header and UDP
+  exec $tc filter add dev $ifdev parent 1:0 protocol ipv6 prio 4 u32 \
+      match u16 0x6000 0xfff0 at 0 \
+      match u8 0x3c 0xff at 6 \
+      match u8 0x11 0xff at 40 \
+      police rate $rate$kilo burst 100K \
+      drop flowid 1:1
+      
+  # filter for IPv=6 and DSCP=00 and IPv6 routing header and UDP
+  exec $tc filter add dev $ifdev parent 1:0 protocol ipv6 prio 4 u32 \
+      match u16 0x6000 0xfff0 at 0 \
+      match u8 0x2b 0xff at 6 \
+      match u8 0x11 0xff at 40 \
+      police rate $rate$kilo burst 100K \
+      drop flowid 1:2
+      
+  # filter for IPv=6 and DSCP=00 and IP tunnelling and UDP
+  exec $tc filter add dev $ifdev parent 1:0 protocol ipv6 prio 5 u32 \
+      match u16 0x6000 0xfff0 at 0 \
+      match u8 0x29 0xff at 6 \
+      match u8 0x11 0xff at 46 \
+      police rate $rate$kilo burst 100K \
+      drop flowid 1:3
+
+      
+  # filter for IPv=6 and DSCP=00 and UDP
+  exec $tc filter add dev $ifdev parent 1:0 protocol ipv6 prio 6 u32 \
+      match u16 0x6000 0xfff0 at 0 \
+      match u8 0x11 0xff at 6 \
+      police rate $rate$kilo burst 100K \
+      drop flowid 1:4
+            
+   
+  # filter for all remaining traffic    
+  exec $tc filter add dev $ifdev parent 1:0 protocol ipv6 prio 10 u32 \
+      match ip6 src ::0/0 police mtu 1 continue \
+      flowid 1:5
+  
+}
+
+proc limit_off {} {
+
+  global tc ifdev 
+  catch { exec $tc qdisc del dev $ifdev handle 1:0 root dsmark indices 64}
+
+}
+
+#main procedure
+limit_off
+screen
+

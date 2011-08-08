@@ -1,0 +1,295 @@
+# -----------------------------------*- mode: Makefile; -*--
+# Makefile - Makefile for GIST/NTLP
+# ----------------------------------------------------------
+# $Id$
+# $HeadURL: https://svn.tm.kit.edu/nsis/ntlp/trunk/src/Makefile.gmake $
+# ==========================================================
+#                      
+# (C)opyright, all rights reserved by
+# - Institute of Telematics, University of Karlsruhe (TH)
+# ==========================================================
+#
+# The following Makefile variables may be used:
+#     LOGGING        Enable logging output (default: active)
+#     DEBUGGING      Enable debugging (default: active)
+#     OPTIMIZATION   Optimize using the given flags (default: '')
+#
+# Don't forget to run "make clean" before changing these variables!
+# An example for building without debugging but with logging support and
+# optimization:
+#
+#     make DEBUGGING= LOGGING=1 OPTIMIZATION=-O2
+#
+
+DISTDIR?=$(CURDIR)/../..
+include $(DISTDIR)/Makefile.inc
+
+DEBUGGING	= 1			# the undefined value disables debugging
+LOGGING		= 1			# the undefined value disables logging
+OPTIMIZATION	= 			# ie. -O2
+
+ifdef DEBUGGING
+GIST_CXXFLAGS	+= -g -D_DEBUG
+endif
+
+ifndef LOGGING
+GIST_CXXFLAGS	+= -D_NO_LOGGING
+endif
+
+GIST_CXXFLAGS	+= $(OPTIMIZATION)
+
+
+
+#SUBARCH := $(shell uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ -e s/arm.*/arm/ -e s/sa110/arm/)
+#ARCH := $(SUBARCH)
+
+#export UNAME_MACHINE := "$(ARCH)"
+
+include ../GIST-KA-RELEASE
+
+#CFLAGS	        = -pg -Wuninitialized -Wall $(GIST_CXXFLAGS) # profiling
+#CFLAGS	        = -s -finline-functions -O3 -Wuninitialized -Wall $(GIST_CXXFLAGS) # optimization
+#CFLAGS	        = --pedantic -O -Wno-long-long -Wuninitialized -Wall $(GIST_CXXFLAGS) # optimized
+#CFLAGS	        = --pedantic -g -Wno-long-long -Wall $(GIST_CXXFLAGS) # development
+#CFLAGS	        = --pedantic -O2 -g -Wno-long-long -Wall $(GIST_CXXFLAGS) # development (valgrind)
+CFLAGS	        = --pedantic -Wno-long-long -Wall $(GIST_CXXFLAGS) -D GIST_VSTR=\"$(GIST_RELEASE)\"
+#CFLAGS	       += -Wno-deprecated -Werror
+
+CLINK		= -c -o
+CC              = gcc
+CPP             = g++
+RM              = rm -f 
+
+NTLPEXE		= gistka
+
+TARGETS = $(NTLPEXE) test_objectpool libs
+
+PDUDIR=pdu
+
+NTLP_PDUSRC  := $(wildcard $(PDUDIR)/*.cpp)
+NTLP_PDUOBJS := $(patsubst %.cpp,%.o,$(NTLP_PDUSRC))
+
+TMP_NTLP_SRCS =  $(wildcard *.cpp) $(NTLP_PDUSRC)
+ifndef USE_FLOWINFO
+NTLP_SRCS = $(filter-out flowinfo.cpp, $(TMP_NTLP_SRCS))
+else
+NTLP_SRCS = $(TMP_NTLP_SRCS)
+CFLAGS += $(FLOWINFO_CFLAGS)
+endif
+NTLP_ALLOBJS=  $(patsubst %.cpp,%.o,$(NTLP_SRCS))
+NTLP_OBJS=  $(filter-out $(NTLP_MAIN_OBJ),$(NTLP_ALLOBJS))
+
+
+DEPENDFILE := $(wildcard dependfile)
+
+GISTLIB=libGIST.a
+GISTLIB_SHARED=libGIST.so
+
+ifdef SCTP_DIR
+GNOME_LIBDIR	= /opt/gnome/lib
+SCTP_INC	= $(SCTP_DIR)/sctplib/sctp
+SCTP_INCLUDE    = -I$(SCTP_INC)
+SCTP_LIBDIR	= $(SCTP_DIR)/sctplib/sctp/.libs
+SCTP_LIB	= $(SCTP_LIBDIR)/libsctplib.a
+SCTP_LIBSEARCH  = -L$(SCTP_LIBDIR) -L$(GNOME_LIBDIR)
+SCTP_LIBLD      = -lsctplib -lgtk -lgdk
+SCTP_OPTIONS	= -D_USE_SCTP
+CFLAGS		+= $(SCTP_OPTIONS)
+PROTLIB_MAKEFLAGS += SCTP_DIR=$(SCTP_DIR)
+endif 
+
+ifdef SCTP_KERN
+SCTP_LIBLD      = -lsctp
+SCTP_OPTIONS	= -D_USE_SCTP
+CFLAGS		+= $(SCTP_OPTIONS)
+PROTLIB_MAKEFLAGS += SCTP_KERN=yo
+endif
+
+# QT_DIR=/usr/lib/qt3
+ifdef QT_DIR
+GUI_OPTIONS	= -D_GUI
+GUI_QTINC	= $(QT_DIR)/include
+GUI_INC		= gui/include
+GUI_SRCDIR	= gui/src
+GUI_INCLUDE	= -I$(GUI_INC) -I$(GUI_QTINC)
+GUI_QTLIBDIR      = $(QT_DIR)/lib
+GUI_LIBSEARCH   = -L$(GUI_QTLIBDIR)
+CFLAGS		+= $(GUI_OPTIONS)
+QTLIBFLAG		= -lqt
+endif
+
+LIBS		= $(PROTLIB_LIB) $(FQUEUE_LIB) $(SCTP_LIB) # use with SCTP
+#LIBS		= $(PROTLIB_LIB) $(FQUEUE_LIB)
+
+# librt is required for POSIX threads
+SHLIBS		= -lrt $(QTLIBFLAG)
+STATIC_LIBS	= $(LD_PROTLIB_LIB) -lipq -lssl $(LD_FQUEUE_LIB) $(SCTP_LIBLD)
+
+API_INC		= ../include
+PDU_INC		= ./pdu
+INCLUDE		= -I. -I$(PDU_INC) -I$(API_INC) -I$(PROTLIB_INC) -I$(FQUEUE_INC) $(SCTP_INCLUDE) $(GUI_INCLUDE)
+LIBDIRS                = -L$(FQUEUE_SRC) -L$(PROTLIB_SRC) $(SCTP_LIBSEARCH) $(GUI_LIBSEARCH)
+
+SUBDIRS	= $(PROTLIB_SRC)
+
+.SUFFIXES:	.cpp
+
+
+
+.DEFAULT:
+	@echo "** Oops, now I'm in trouble, because..."
+	@echo "=> Don't know how to make target $<."
+	@echo
+	@echo "HINT: If it's a header file, you may try \"make depend\"".
+	@echo "      Otherwise have a look at"
+	@echo "      `pwd`/Makefile"
+	@false
+
+## ----------------------------------------------------------------------------------------------
+
+all:	protliblib $(GISTLIB) $(NTLPEXE)
+ 
+.PHONY: all protliblib
+
+setperms:
+	test -x test_setuid && su -c 'chown root test_setuid ; chmod u+s test_setuid' ; true
+#	test -x test_tp_over_sctp && su -c 'chown root test_tp_over_sctp ; chmod u+s test_tp_over_sctp' ; true
+	test -x test_signaling && su -c 'chown root test_signaling ; chmod u+s test_signaling' ; true
+	test -x simpleclient && su -c 'chown root simpleclient ; chmod u+s simpleclient' ; true
+
+$(NTLPEXE):   $(NTLP_MAIN_OBJ) $(GISTLIB) $(LIBS)
+	$(CPP) $(CFLAGS) -o $@ $(NTLP_MAIN_OBJ) -L . -lGIST $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS) 
+
+$(GISTLIB): $(NTLP_OBJS)
+	ar -rsv $@ $?
+
+$(GISTLIB_SHARED): $(NTLP_OBJS)
+	$(CPP) -shared -o $@ $?
+
+test_flowinfo: test_flowinfo.o $(GISTLIB) $(LIBS)
+	$(CPP) $(CFLAGS) -o $@ $^  -L . -lGIST $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+simpleclient: simpleclient.o
+	$(CPP) $(CFLAGS) -o $@ $^ $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+test_api_send: test_api_send.o
+	$(CPP) $(CFLAGS) -o $@ $(NTLP_OBJS) $^ $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+simpleclientUDPdummy: simpleclientUDPdummy.o
+	$(CPP) $(CFLAGS) -o $@ $(NTLP_OBJS) $^ $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+
+simpleclientQE: simpleclientQE.o
+	$(CPP) $(CFLAGS) -o $@ $^ $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+simpleclientNTLP: simpleclientNTLP.o
+	$(CPP) $(CFLAGS) -o $@ $(NTLP_OBJS) $^ $(LIBDIRS) $(SHLIBS) $(STATIC_LIBS)
+
+
+tests: libs test_log test_objectpool test_timer test_threads test_refcount\
+	test_ie test_fqueue test_timer_module test_setuid test_tp_over_tcp\
+	test_prefixmap test_signaling
+
+test_log: test_log.o logfile.o 
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_prefixmap: test_prefixmap.o threadsafe_db.o logfile.o libie.a
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_objectpool: test_objectpool.o test_util.o objectpool.o logfile.o # fqueue.o $(FQUEUE_LIB)
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_fqueue: test_fqueue.o test_util.o fqueue.o logfile.o $(FQUEUE_LIB)
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_timer: test_timer.o timer.o logfile.o # fqueue.o $(FQUEUE_LIB)
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_threads: test_threads.o threads.o logfile.o # fqueue.o $(FQUEUE_LIB)
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_refcount: test_refcount.o refcount.o logfile.o 
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_ie: test_ie.o threadsafe_db.o logfile.o test_util.o libie.a
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_setuid: test_setuid.o setuid.o threadsafe_db.o logfile.o 
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS)
+
+test_send_pdu: test_send_pdu.o $(PROTLIB) $(LIBS)
+	$(CPP) $(CFLAGS) -o $@ $^ $(SHLIBS) $(NTLP_OBJS)
+
+
+
+libs:	$(LIBS)
+
+# always checks for new things in protlib subdirs
+protliblib:
+		$(MAKE) -C $(PROTLIB_SRC) $(PROTLIB_MAKEFLAGS)
+
+$(PROTLIB_LIB): 
+		$(MAKE) -C $(PROTLIB_SRC) $(PROTLIB_MAKEFLAGS) $(@F)
+
+$(FQUEUE_LIB): 
+		$(MAKE) -C $(FQUEUE_DIR)
+
+$(SCTP_LIB):
+	$(MAKE) -C $(SCTP_DIR)
+
+clean:  
+		$(RM) $(PDUDIR)/*.o *.o *~ \#*\# core $(INC)/*~ $(GISTLIB) $(GISTLIB_SHARED)
+
+dellogs:  
+		$(RM) *.log
+
+distclean: 	clean dellogs
+		$(RM) $(TARGETS)
+		$(RM) -r cxx_repository
+		$(RM) so_locations
+
+clobber:	distclean
+
+freshdepend: depend
+
+# depend: *.cpp ../include/*.h
+depend:
+	$(CPP) -MM $(NTLP_SRCS) $(INCLUDE) > dependfile
+
+dependfile:
+ifneq ($(DEPENDFILE),dependfile)
+	$(CPP) -MM $(NTLP_SRCS) $(INCLUDE) > dependfile
+endif
+
+TAGS:
+	- etags --language-force=c++ $(INC)/*.h $(NTLP_SRCS) $(PROTLIB_INC)/*.h $(PROTLIB_SRC)/*.cpp
+
+
+ls:		
+		@ls -x --width=60 $(NTLP_SRCS) > .ls.tmp
+		@cat .ls.tmp |  sed s/\	/\ /g | sed s/\ \ /\ /g  > .ls.sed.tmp
+		@echo ""
+		@cat .ls.sed.tmp | sed s/\ \ /\ /g
+		@echo ""
+		@cat .ls.sed.tmp | sed s/\ \ /\ /g | sed s/\.cpp/\.o/g
+		@echo ""
+		@rm -f .ls.tmp .ls.sed.tmp
+
+
+#compile rules
+
+%.o:		%.cpp
+		$(RM) $@
+		$(CPP) $(CFLAGS) $(CLINK) $@ $(INCLUDE) $<
+
+#rule for Qt moc files (to process signals/slots/Q_OBJECT)
+moc_%.cpp: %.h
+	   moc $< -o $@
+
+conftypecheck:
+	grep -h getconfigpar $(NTLP_SRCS) ../include/*.h | perl -pe 's/.*getconfigpar.*<\s*([^\s]+[^>]+>?)\s*>\(([^)]+)\).*/\2 \1/' | sort | uniq
+
+.PHONY: clean distclean dellogs clobber setperms TAGS depend dependfile conftypecheck
+
+### DO NOT DELETE THIS LINE -- make depend depends on it.
+-include dependfile

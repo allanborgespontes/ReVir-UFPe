@@ -1,0 +1,31 @@
+Test Setup 2: NI, EDGE-NF, NON-EDGE-NF, and NR
+==============================================
+
+A setup with four nodes: initiator, edge forwarder, non-edge forwarder, and
+responder. One node is attached to the internet, the other nodes are part of
+one administrative domain and are connected with the internet through the
+EDGE-NF. The NON-EDGE-NF is an internal router.
+
+The following tests are available:
+
+
+Test Setup 2a: Both NFs are firewalls
+-------------------------------------
+
+NI and NF can reach each other using public addresses. No NAT is required.
+
+2a1: NI ---> EDGE-FW ---> NON-EDGE-FW ---> NR
+
+2a2: NR <--- EDGE-FW <--- NON-EDGE-FW <--- NI
+
+
+Test Setup 2b: Firewall and NAT
+-------------------------------
+
+The edge NF is a firewall, the non-edge NF is a NAT.
+
+2b1: NI ---> EDGE-FW ---> NON-EDGE-NAT ---> NR
+
+2b2: NR <--- EDGE-FW <--- NON-EDGE-NAT <--- NI
+
+# EOF

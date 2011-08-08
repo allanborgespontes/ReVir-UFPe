@@ -1,0 +1,192 @@
+#! /bin/bash
+#
+# $Id$
+#
+# This script provides a simple interface to the iptables tool. The NATFW
+# implementation uses this script instead of calling iptables directly.
+#
+# Usage: sudo ./natfw_iptables command args
+#
+# Commands:
+#   setup
+#   install_nat
+#   install_firewall
+#   remove_nat
+#   remove_firewall
+#   flush
+#
+
+#
+# configuration
+#
+GIST_PORT_UDP=40001
+NATFWD_FILTER_CHAIN=natfwd_filter
+NATFWD_DNAT_CHAIN=natfwd_dnat
+NATFWD_SNAT_CHAIN=natfwd_snat
+
+
+
+#
+# MAIN
+#
+
+if [ $# -eq 0 ]; then
+	echo "Usage: $0 command args" 1>&2
+	exit 1
+fi
+
+COMMAND=$1
+echo $COMMAND
+shift
+
+
+setup() {
+	CMD="iptables -N $NATFWD_FILTER_CHAIN"
+	CMD="$CMD && iptables -A FORWARD -j $NATFWD_FILTER_CHAIN"
+	CMD="$CMD && iptables -t nat -N $NATFWD_DNAT_CHAIN"
+	CMD="$CMD && iptables -t nat -A PREROUTING -j $NATFWD_DNAT_CHAIN"
+	CMD="$CMD && iptables -t nat -N $NATFWD_SNAT_CHAIN"
+	CMD="$CMD && iptables -t nat -A POSTROUTING -j $NATFWD_SNAT_CHAIN"
+
+	echo "$CMD"
+	echo "$CMD" | sh -
+}
+
+
+#
+# Arguments:
+#   {DNAT|SNAT} PROTOCOL DS_ADDR DS_PORT EXT_ADDR EXT_PORT DR_ADDR DR_PORT
+#
+install_nat() {
+	NAT_TYPE=$1
+	PROTOCOL=$2
+	SRC_ADDR=$3
+	SRC_PORT=$4
+
+	case "$NAT_TYPE" in
+		DNAT)	CHAIN=$NATFWD_DNAT_CHAIN;;
+		SNAT)	CHAIN=$NATFWD_SNAT_CHAIN;;
+		*)	echo "invalid NAT type" 1>&2 && exit 1
+	esac
+
+	CMD="iptables -t nat -A $CHAIN"
+	CMD="$CMD -p $PROTOCOL -s $SRC_ADDR --sport $SRC_PORT"
+
+	case "$NAT_TYPE" in
+		DNAT)	CMD="$CMD -d $5 --dport $6 -j DNAT"
+			CMD="$CMD --to-destination $7:$8"
+			;;
+		SNAT)	CMD="$CMD -d $7 --dport $8 -j SNAT"
+			CMD="$CMD --to-source $5:$6"
+			;;
+	esac
+
+	echo "$CMD"
+	echo "$CMD" | tee | sh -
+}
+
+
+#
+# Arguments:
+#   {DNAT|SNAT} PROTOCOL DS_ADDR DS_PORT EXT_ADDR EXT_PORT DR_ADDR DR_PORT
+#
+remove_nat() {
+	NAT_TYPE=$1
+	PROTOCOL=$2
+	SRC_ADDR=$3
+	SRC_PORT=$4
+
+	case "$NAT_TYPE" in
+		DNAT)	CHAIN=$NATFWD_DNAT_CHAIN;;
+		SNAT)	CHAIN=$NATFWD_SNAT_CHAIN;;
+		*)	echo "invalid NAT type" 1>&2 && exit 1
+	esac
+
+	CMD="iptables -t nat -D $CHAIN"
+	CMD="$CMD -p $PROTOCOL -s $SRC_ADDR --sport $SRC_PORT"
+
+	case "$NAT_TYPE" in
+		DNAT)	CMD="$CMD -d $5 --dport $6 -j DNAT"
+			CMD="$CMD --to-destination $7:$8"
+			;;
+		SNAT)	CMD="$CMD -d $7 --dport $8 -j SNAT"
+			CMD="$CMD --to-source $5:$6"
+			;;
+	esac
+
+	echo "$CMD"
+	echo "$CMD" | tee | sh -
+}
+
+
+#
+# Arguments:
+#   {ALLOW|DROP} PROTOCOL DS_ADDR DS_PREFIX DS_PORT DR_ADDR DR_PREFIX DR_PORT
+#
+install_fw() {
+	ACTION=$1
+	PROTOCOL=$2
+
+	# create two commands: one for upstream and one for downstream
+	CMD_UP="iptables -A $NATFWD_FILTER_CHAIN -p $PROTOCOL"
+	CMD_DOWN="iptables -A $NATFWD_FILTER_CHAIN -p $PROTOCOL"
+
+	CMD_UP="$CMD_UP -d $3/$4 -s $6/$7 --dport $5 --sport $8 -j $ACTION"
+	CMD_DOWN="$CMD_DOWN -s $3/$4 -d $6/$7 --sport $5 --dport $8 -j $ACTION"
+
+	CMD="$CMD_UP && $CMD_DOWN"
+
+	echo "$CMD"
+	echo "$CMD" | tee | sh -
+}
+
+
+#
+# Arguments:
+#   {ALLOW|DROP} PROTOCOL DS_ADDR DS_PREFIX DS_PORT DR_ADDR DR_PREFIX DR_PORT
+#
+remove_fw() {
+	ACTION=$1
+	PROTOCOL=$2
+
+	# create two commands: one for upstream and one for downstream
+	CMD_UP="iptables -D $NATFWD_FILTER_CHAIN -p $PROTOCOL"
+	CMD_DOWN="iptables -D $NATFWD_FILTER_CHAIN -p $PROTOCOL"
+
+	CMD_UP="$CMD_UP -d $3/$4 -s $6/$7 --dport $5 --sport $8 -j $ACTION"
+	CMD_DOWN="$CMD_DOWN -s $3/$4 -d $6/$7 --sport $5 --dport $8 -j $ACTION"
+
+	CMD="$CMD_UP && $CMD_DOWN"
+
+	echo "$CMD"
+	echo "$CMD" | tee | sh -
+}
+
+
+flush() {
+	CMD="iptables -D FORWARD -j $NATFWD_FILTER_CHAIN"
+	CMD="$CMD; iptables -F $NATFWD_FILTER_CHAIN"
+	CMD="$CMD; iptables -X $NATFWD_FILTER_CHAIN"
+	CMD="$CMD; iptables -t nat -D PREROUTING -j $NATFWD_DNAT_CHAIN"
+	CMD="$CMD; iptables -t nat -F $NATFWD_DNAT_CHAIN"
+	CMD="$CMD; iptables -t nat -X $NATFWD_DNAT_CHAIN"
+	CMD="$CMD; iptables -t nat -D POSTROUTING -j $NATFWD_SNAT_CHAIN"
+	CMD="$CMD; iptables -t nat -F $NATFWD_SNAT_CHAIN"
+	CMD="$CMD; iptables -t nat -X $NATFWD_SNAT_CHAIN"
+
+	echo "$CMD"
+	echo "$CMD" | sh -
+}
+
+
+case "$COMMAND" in 
+	setup)		setup "$@";;
+	install_nat)	install_nat "$@";;
+	install_fw)	install_fw "$@";;
+	remove_nat)	remove_nat "$@";;
+	remove_fw)	remove_fw "$@";;
+	flush)		flush "$@";;
+	*)
+			echo "$0: invalid command $COMMAND" 1>&2
+esac
+

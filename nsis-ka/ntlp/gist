@@ -1,0 +1,30 @@
+#!/bin/bash
+
+LOGDIR=testing/logs
+CONFDIR=../etc
+
+if [ \! -d $LOGDIR ]; then   mkdir $LOGDIR; fi
+
+# define a signal handler function
+handle_sigint()
+{
+        true
+}
+
+# load kernel modules
+./loadmodules
+# activate the signal handler
+# This signal handler is called after all child processes (i.e. gist)
+# have been signaled SIGINT and have terminated and gives control back
+# to the script
+trap handle_sigint SIGINT
+
+LOGFILE="$LOGDIR/test-`date +%F-%T`-`hostname`-$$"
+src/gistka --config ${CONFDIR}/nsis-ka.conf $* 2>&1 | tee $LOGFILE
+
+# change ownership of logfiles if this script is called via sudo
+if [ "$SUDO_UID" != "" ]; then
+	chown $SUDO_UID:$SUDO_GID $LOGFILE
+fi
+
+./flush

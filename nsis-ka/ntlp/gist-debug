@@ -1,0 +1,6 @@
+#! /bin/sh
+
+./loadmodules
+
+gdb --args src/gistka --config ../etc/nsis-ka.conf $* && ./flush
+

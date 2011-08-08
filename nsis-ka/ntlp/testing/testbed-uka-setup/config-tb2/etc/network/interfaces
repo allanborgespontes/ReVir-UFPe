@@ -1,0 +1,19 @@
+auto lo eth0 eth1 eth2 eth3
+iface lo inet loopback
+
+iface eth0 inet dhcp
+
+iface eth1 inet static
+address 10.1.2.2
+netmask 255.255.255.0
+network 10.1.2.0
+
+iface eth2 inet static
+address 10.2.3.2
+netmask 255.255.255.0
+network 10.2.3.0
+
+iface eth3 inet static
+address 10.2.4.2
+netmask 255.255.255.0
+network 10.2.4.0

@@ -1,0 +1,17 @@
+GIST
+====
+What should be tested:
+Two nodes a and b directly connected.
+- Setup session A in D-Mode a->b
+- Promotion of session A to C-Mode insecure a->b
+- Promotion of session A to C-Mode secure a->b
+- Sending of data unsecure/unreliable (should use TLS MA) a->b
+- Sending of data unsecure/reliable (should use TLS MA) a->b
+- Other side sets up session b->a: Setup of session B from 
+  responder side should then lead to re-use
+  of TLS MA as well (is this ok due to SPEC?). This is the strange
+  case where Responder has no control over the MA.
+- if no data is sent:
+  - MA should go to IDLE and should be torn down after a timeout
+  - Message routing state should tome out after a while
+    (Querier_inactive)

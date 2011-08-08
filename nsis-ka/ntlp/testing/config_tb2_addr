@@ -1,0 +1,26 @@
+1: lo: <LOOPBACK,UP> mtu 16436 qdisc noqueue 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo
+    inet6 ::1/128 scope host 
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,NOTRAILERS,UP> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 00:0c:f1:77:9d:f1 brd ff:ff:ff:ff:ff:ff
+    inet 141.3.71.202/26 brd 141.3.71.255 scope global eth0
+    inet6 2001:638:204:c:20c:f1ff:fe77:9df1/64 scope global dynamic 
+       valid_lft 86315sec preferred_lft 815sec
+    inet6 fe80::20c:f1ff:fe77:9df1/64 scope link 
+       valid_lft forever preferred_lft forever
+3: eth1: <BROADCAST,MULTICAST,NOTRAILERS,UP> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 00:0e:0c:22:57:67 brd ff:ff:ff:ff:ff:ff
+    inet 10.10.2.2/24 brd 10.10.2.255 scope global eth1
+    inet6 fe80::20e:cff:fe22:5767/64 scope link 
+       valid_lft forever preferred_lft forever
+4: eth2: <BROADCAST,MULTICAST,NOTRAILERS,UP> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 00:0e:0c:05:88:d8 brd ff:ff:ff:ff:ff:ff
+    inet 10.10.1.2/24 brd 10.10.1.255 scope global eth2
+    inet6 fe80::20e:cff:fe05:88d8/64 scope link 
+       valid_lft forever preferred_lft forever
+5: eth3: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 00:0e:0c:05:88:99 brd ff:ff:ff:ff:ff:ff
+6: sit0: <NOARP> mtu 1480 qdisc noqueue 
+    link/sit 0.0.0.0 brd 0.0.0.0

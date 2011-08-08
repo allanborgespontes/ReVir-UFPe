@@ -1,0 +1,17 @@
+# Makefile.svn
+# call "make -f Makefile.svn"
+
+configure:	configure.ac
+	autoreconf --install
+	@echo "Autotools initialization done.\n"
+	@echo "Now you can build the project by running the following commands"
+	@echo "./configure"
+	@echo "make"
+	@echo "make install"
+
+reconf:
+	autoreconf --install
+
+.PHONY: configure reconf
+
+#end of Makefile.svn

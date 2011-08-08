@@ -1,0 +1,20 @@
+QoS-NSLP QSPEC Template
+-----------------------
+
+This directory contains an implementation of QSPEC Template originally
+written by Matthias Friedrich as part of a study thesis. The
+current implementation is conforming to RFC 5975
+http://tools.ietf.org/html/rfc5975
+
+Latest code is here:
+https://svn.tm.kit.edu/nsis/qspec/trunk
+
+Trac and additional document can be found here:
+http://nsis-ka.org/
+
+The specification has been developed by the IETF NSIS Working Group (see [1]).
+
+[1] NSIS working group status http://tools.ietf.org/wg/nsis
+-- 
+$Id: README 5718 2010-10-14 10:47:51Z bless $
+$HeadURL: https://svn.tm.kit.edu/nsis/qspec/trunk/README $

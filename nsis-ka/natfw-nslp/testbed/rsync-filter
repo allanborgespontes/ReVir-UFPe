@@ -1,0 +1,16 @@
+# This is a filter file for rsync. It makes sure that no generated files,
+# like object files, libraries, etc. are copied to the testbed nodes.
+#
+- *.o
+- *.a
+- *.so
+- depend
+- *.swp
+- /src/natfwd
+- /src/test_client
+- /src/test_stress
+- /test/test_runner
+- /eval/ni
+- /eval/nf
+- /eval/nr
+- /ntlp/src/ntlp

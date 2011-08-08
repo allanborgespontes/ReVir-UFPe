@@ -1,0 +1,14 @@
+some ideas for test cases:
+
+- Sending non-Data message with E-flag:
+  *  must be a DATA message, any other message with an E-flag set
+     must cause: Common Header Parse Error, Invalid E flag
+- check for invalid use of R flag:
+  The rules governing the use of the R-flag depend on the GIST message
+   type.  It MUST always be set (R=1) in Query messages, since these
+   always elicit a Response, and never in Confirm, Data or Error
+   messages.  It MAY be set in an MA-Hello; if set, another MA-Hello
+   MUST be sent in reply.  It MAY be set in a Response, but MUST be set
+   if the Response contains a Responder cookie; if set, a Confirm MUST
+   be sent in reply. 
+

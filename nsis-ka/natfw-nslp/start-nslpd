@@ -1,0 +1,3 @@
+#!/bin/bash
+CONFDIR=../etc
+sudo src/natfwd -c ${CONFDIR}/nsis-ka.conf

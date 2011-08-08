@@ -1,0 +1,28 @@
+#! /bin/sh
+
+GISTCONF="../etc/nsis-ka.conf"
+CONFIGURED_GIST_WELL_KNOWN_PORT=$(sed -n 's/^\s*udp-port\s*=\s*//p' $GISTCONF)
+GIST_WELL_KNOWN_PORT=${CONFIGURED_GIST_WELL_KNOWN_PORT:-270}
+
+# If you have the ipv4options iptables extension installed, use the uncommented rule
+# default rule will pass ALL UDP data to the IP-Queue.
+#
+# For IPv6, there are currently no special rules known, if YOU know one filtering packets with RAO set,
+# please tell us.
+#
+# Information on the IPv4 IP Options extension to iptables:
+#
+# http://www.netfilter.org/projects/patch-o-matic/pom-base.html#pom-base-ipv4options
+#
+# iptables -A input -m ipv4options --ra -j QUEUE
+iptables -D INPUT -p udp --dport $GIST_WELL_KNOWN_PORT -j QUEUE
+iptables -D FORWARD -p udp --dport $GIST_WELL_KNOWN_PORT -j QUEUE
+#iptables -D INPUT   -p udp -j QUEUE
+#iptables -D FORWARD -p udp -j QUEUE
+
+# ip6tables
+#ip6tables -A INPUT -p udp -m hbh --hbh-opts 5 -j QUEUE
+#ip6tables -D INPUT   -p udp -j QUEUE
+#ip6tables -D FORWARD -p udp -j QUEUE
+ip6tables -D INPUT   -p udp --dport $GIST_WELL_KNOWN_PORT  -j QUEUE
+ip6tables -D FORWARD -p udp --dport $GIST_WELL_KNOWN_PORT  -j QUEUE
